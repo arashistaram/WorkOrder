@@ -23,26 +23,18 @@ return new class extends Migration
 
             $table->foreignId('assignee_id')->nullable()
                 ->constrained('users')->nullOnDelete();
+
             $table->foreignId('assigned_by')->nullable()
                 ->constrained('users')->nullOnDelete();
             $table->timestamp('assigned_at')->nullable();
-
-            $table->foreignId('customer_id')->nullable()
-                ->constrained()->nullOnDelete();
-            $table->foreignId('project_id')->nullable()
-                ->constrained()->nullOnDelete();
-            $table->foreignId('location_id')->nullable()
-                ->constrained('locations')->nullOnDelete();
-            $table->foreignId('asset_id')->nullable()
-                ->constrained('assets')->nullOnDelete();
-            $table->foreignId('category_id')->nullable()
-                ->constrained('work_order_categories')->nullOnDelete();
 
             $table->foreignId('status_id')
                 ->constrained('work_order_statuses')->restrictOnDelete();
             $table->foreignId('priority_id')
                 ->constrained('work_order_priorities')->restrictOnDelete();
 
+
+            // ایدی نفری است که میخواد از دپارتمان خود به دپارتمان دیگری بزند
             $table->foreignId('created_by')
                 ->constrained('users')->restrictOnDelete();
 
@@ -51,8 +43,8 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
 
-            $table->decimal('estimated_hours', 6, 2)->nullable();
-            $table->decimal('actual_hours', 6, 2)->nullable();
+            $table->decimal('estimated_hours', 6, 2)->nullable(); // ساعات بر اورده شده
+            $table->decimal('actual_hours', 6, 2)->nullable(); // ساعت واقعی
 
             $table->json('metadata')->nullable();
 
@@ -64,7 +56,6 @@ return new class extends Migration
             $table->index(['assignee_id', 'status_id'], 'wo_assignee_status_idx');
             $table->index(['status_id', 'due_date'], 'wo_status_due_idx');
             $table->index(['created_by']);
-            $table->index(['customer_id']);
             $table->index(['priority_id', 'status_id']);
         });
     }
