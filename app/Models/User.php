@@ -7,21 +7,27 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable([
+    'username', 'password', 'role',
+    'phone', 'employee_code', 'job_title',
+    'is_active', 'last_login_at', 'settings'
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    protected $casts = [
+        'last_login_at'     => 'datetime',
+        'is_active'         => 'bool',
+        'settings'          => 'array',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -29,4 +35,46 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function departments(): BelongsToMany
+    {
+        return $this->belongsToMany(Department::class, 'department_user')
+            ->withPivot(['role', 'is_active', 'joined_at', 'left_at'])
+            ->withTimestamps();
+    }
+
+    public function supervisedDepartments(): BelongsToMany
+    {
+        return $this->belongsToMany(Department::class, 'department_user')
+            ->wherePivot('role', 'supervisor')
+            ->wherePivot('is_active', true);
+    }
+
+    public function createdWorkOrders()
+    {
+        return $this->hasMany(WorkOrder::class, 'created_by');
+    }
+
+    public function assignedWorkOrders()
+    {
+        return $this->hasMany(WorkOrder::class, 'assignee_id');
+    }
+
+    public function isSupervisorOf(int $departmentId): bool
+    {
+        return $this->departments()
+            ->wherePivot('department_id', $departmentId)
+            ->wherePivot('role', 'supervisor')
+            ->wherePivot('is_active', true)
+            ->exists();
+    }
+
+    public function isMemberOf(int $departmentId): bool
+    {
+        return $this->departments()
+            ->wherePivot('department_id', $departmentId)
+            ->wherePivot('is_active', true)
+            ->exists();
+    }
+
 }
