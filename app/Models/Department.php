@@ -13,7 +13,7 @@ class Department extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'name', 'code', 'description', 'color', 'parent_id',
+        'name', 'code', 'description', 'parent_id',
         'phone', 'location', 'is_active'
     ];
 
@@ -29,17 +29,21 @@ class Department extends Model
         return $this->hasMany(Department::class, 'parent_id');
     }
 
-    public function members(): BelongsToMany
+    public function departmentsUsers(): HasMany
     {
-        return $this->belongsToMany(User::class, 'department_user')
-            ->withPivot(['role', 'is_primary', 'is_active'])
+        return $this->hasMany(DepartmentUser::class);
+    }
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'department_users')
+            ->withPivot('is_active')
             ->withTimestamps();
     }
 
-    public function supervisors(): BelongsToMany
+    public function managers(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'department_user')
-            ->wherePivot('role', 'supervisor')
+        return $this->belongsToMany(User::class, 'department_users')
+            ->wherePivot('role', 'manager')
             ->wherePivot('is_active', true);
     }
 

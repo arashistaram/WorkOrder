@@ -16,11 +16,11 @@ return new class extends Migration
             $table->foreignId('department_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
-            $table->string('role')->default('member'); // ['supervisor', 'member']
+            $table->string('role')->default('user'); // ['manager', 'user']
 
             $table->boolean('is_active')->default(true);
-            $table->date('joined_at')->nullable();
-            $table->date('left_at')->nullable();
+            $table->string('joined_at')->nullable();
+            $table->string('left_at')->nullable();
 
             $table->timestamps();
 

@@ -8,9 +8,9 @@ use Illuminate\Database\Query\Builder;
 
 class DepartmentUser extends Pivot
 {
-    public const string ROLE_SUPERVISOR = 'supervisor';
-    public const string ROLE_DEPUTY     = 'deputy';
-    public const string ROLE_MEMBER     = 'member';
+    protected $table = 'department_users';
+    public const string ROLE_MANAGER = 'manager';
+    public const string ROLE_USER     = 'user';
 
     public $incrementing = true;
 
@@ -30,7 +30,7 @@ class DepartmentUser extends Pivot
     ];
 
     protected $attributes = [
-        'role'      => self::ROLE_MEMBER,
+        'role'      => self::ROLE_USER,
         'is_active' => true,
     ];
 
@@ -46,17 +46,13 @@ class DepartmentUser extends Pivot
 
     public function isSupervisor(): bool
     {
-        return $this->role === self::ROLE_SUPERVISOR;
+        return $this->role === self::ROLE_MANAGER;
     }
 
-    public function isDeputy(): bool
-    {
-        return $this->role === self::ROLE_DEPUTY;
-    }
 
     public function isMember(): bool
     {
-        return $this->role === self::ROLE_MEMBER;
+        return $this->role === self::ROLE_USER;
     }
 
     public function canAssignWorkOrders(): bool
@@ -77,13 +73,13 @@ class DepartmentUser extends Pivot
 
     public function promoteToSupervisor(): self
     {
-        $this->update(['role' => self::ROLE_SUPERVISOR]);
+        $this->update(['role' => self::ROLE_MANAGER]);
         return $this;
     }
 
     public function demoteToMember(): self
     {
-        $this->update(['role' => self::ROLE_MEMBER]);
+        $this->update(['role' => self::ROLE_USER]);
         return $this;
     }
 
@@ -122,22 +118,17 @@ class DepartmentUser extends Pivot
 
     public function scopeSupervisors(Builder $q): Builder
     {
-        return $q->where('role', self::ROLE_SUPERVISOR);
-    }
-
-    public function scopeDeputies(Builder $q): Builder
-    {
-        return $q->where('role', self::ROLE_DEPUTY);
+        return $q->where('role', self::ROLE_MANAGER);
     }
 
     public function scopeMembers(Builder $q): Builder
     {
-        return $q->where('role', self::ROLE_MEMBER);
+        return $q->where('role', self::ROLE_USER);
     }
 
     public function scopeWithAssignPermission(Builder $q): Builder
     {
-        return $q->whereIn('role', [self::ROLE_SUPERVISOR, self::ROLE_DEPUTY]);
+        return $q->where('role', self::ROLE_MANAGER);
     }
 
     public function scopeForDepartment(Builder $q, int $departmentId): Builder

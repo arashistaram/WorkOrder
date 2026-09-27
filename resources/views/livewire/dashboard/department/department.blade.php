@@ -76,11 +76,15 @@
 
                                 {{-- مدیر واحد --}}
                                 <div class="field @error('manager') has-error @enderror">
-                                    <label>مدیر واحد</label>
+                                    <label>انتخاب مدیر واحد</label>
                                     <div class="global-search" style="width: 100%">
-                                        <input type="text"
-                                               wire:model="manager"
-                                               placeholder="نام و نام خانوادگی">
+                                        <select wire:model="managerId">
+
+                                            @foreach($this->getUsers() as $key => $value)
+                                                <option value="{{ $value }}">{{ $key }}</option>
+                                            @endforeach
+
+                                        </select>
                                     </div>
                                     @error('manager') <span class="field-error">{{ $message }}</span> @enderror
                                 </div>
@@ -89,9 +93,9 @@
                                 <div class="field @error('description') has-error @enderror" style="grid-column: span 2">
                                     <label>توضیحات</label>
                                     <div class="global-search" style="width: 100%">
-                                    <textarea wire:model="description"
-                                          rows="3"
-                                          placeholder="شرح کوتاه درباره‌ی وظایف این واحد…"></textarea>
+                                        <textarea wire:model="description"
+                                              rows="3"
+                                              placeholder="شرح کوتاه درباره‌ی وظایف این واحد…"></textarea>
                                     </div>
                                     @error('description') <span class="field-error">{{ $message }}</span> @enderror
                                 </div>
@@ -119,18 +123,6 @@
                                                dir="ltr">
                                     </div>
                                     @error('phone') <span class="field-error">{{ $message }}</span> @enderror
-                                </div>
-
-                                {{-- ایمیل --}}
-                                <div class="field @error('email') has-error @enderror">
-                                    <label>ایمیل</label>
-                                    <div class="global-search" style="width: 100%">
-                                        <input type="email"
-                                               wire:model="email"
-                                               placeholder="dept@example.com"
-                                               dir="ltr">
-                                    </div>
-                                    @error('email') <span class="field-error">{{ $message }}</span> @enderror
                                 </div>
 
                                 {{-- وضعیت --}}
@@ -173,8 +165,8 @@
                  stroke-linecap="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/>
             </svg>
-            <input type="search" id="list-search" placeholder="جستجو بر اساس شماره، عنوان، مشتری…"
-                   aria-label="جستجوی دستورکارها" autocomplete="off">
+            <input type="search" wire:model.live.debounce.400ms="search" id="list-search" placeholder="جستجو بر اساس شماره، عنوان، مشتری…"
+                   aria-label="جستجوی واحد ها" autocomplete="off">
         </div>
 
         <div class="toolbar-filters d-flex align-items-center flex-wrap gap-2">
@@ -199,131 +191,184 @@
         <div class="table-wrap">
             <div class="table-scroll">
 
+                @php
+                    /** @var \Illuminate\Pagination\LengthAwarePaginator $paginator */
+                @endphp
+
                 <table class="table">
                     <thead>
                     <tr>
                         <th class="cell-check">
                             <input type="checkbox" class="checkbox" id="select-all"
-                                   data-action="select-all" aria-label="انتخاب همه دستورکارهای این صفحه">
+                                   aria-label="انتخاب همه">
                         </th>
-
                         <th>
-                            <button class="th-sort" data-action="sort" data-key="id">شناسه
+                            <button class="th-sort" wire:click="sortBy('id')">
+                                شناسه
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                         </th>
-
                         <th>
-                            <button class="th-sort" data-action="sort" data-key="title">عنوان واحد
+                            <button class="th-sort" wire:click="sortBy('name')">
+                                عنوان واحد
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                         </th>
-
                         <th>
-                            <button class="th-sort" data-action="sort" data-key="customer">کد واحد
+                            <button class="th-sort" wire:click="sortBy('code')">
+                                کد واحد
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                         </th>
-
-                        <th class="cell-project">رنگ واحد</th>
-
                         <th>
-                            <button class="th-sort" data-action="sort" data-key="assignee">سرپرست واحد
+                            <button class="th-sort" wire:click="sortBy('users')">
+                                سرپرست واحد
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                         </th>
-
                         <th>
-                            <button class="th-sort" data-action="sort" data-key="priority">تلفن واحد
+                            <button class="th-sort" wire:click="sortBy('phone')">
+                                تلفن واحد
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                         </th>
-
                         <th>
-                            <button class="th-sort" data-action="sort" data-key="status">وضعیت
+                            <button class="th-sort" wire:click="sortBy('is_active')">
+                                وضعیت
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                         </th>
-
                         <th>
-                            <button class="th-sort is-sorted" data-action="sort" data-key="dueDate">سررسید
-                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-                                     stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
-                            </button>
-                        </th>
-
-                        <th>
-                            <button class="th-sort" data-action="sort" data-key="createdAt">ایجاد
+                            <button class="th-sort" wire:click="sortBy('location')">
+                                لوکیشن
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </button>
                         </th>
-
+                        <th>
+                            <button class="th-sort" wire:click="sortBy('created_at')">
+                                ایجاد
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                                     stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </button>
+                        </th>
                         <th class="cell-actions"><span class="sr-only">اقدامات</span></th>
                     </tr>
                     </thead>
 
                     <tbody>
+                    @forelse ($this->departments as $department)
+                        <tr wire:key="dept-{{ $department->id }}">
 
+                            <td class="cell-check">
+                                <input type="checkbox"
+                                       class="checkbox"
+                                       aria-label="انتخاب DEP-{{ $department->id }}">
+                            </td>
 
-                    <tr data-action="open-wo" data-id="WO-10482">
-                        <td class="cell-check"><input type="checkbox" class="checkbox"
-                                                      data-action="toggle-select" data-id="WO-10482" aria-label="انتخاب WO-10482"></td>
-                        <td class="cell-wo" data-label="شناسه">
-                            <a href="{{ route('detail-work-orders') }}" wire:navigate.hover class="wo-link" data-action="open-wo" data-id="WO-10482">WO-10482</a>
-                        </td>
-                        <td class="cell-title" data-label="عنوان واحد"><span class="title-text">انفورماتیک</span></td>
-                        <td class="cell-customer" data-label="سرپرست واحد"><div class="cell-sub" style="color:var(--color-text-2)">01</div></td>
-                        <td class="cell-project" data-label="کد واحد"><div class="cell-sub"><span class="badge badge--danger" style="background-color: #F54927; color: #fff">#F54927</span></div></td>
-                        <td class="cell-assignee" data-label="مسئول">
-                            <span class="avatar-stack">
-                              <span class="avatar avatar--sm avatar--blue">آ.ج</span>
-                              <span class="name">آقای جمشیدی</span>
+                            <td class="cell-wo" data-label="شناسه">
+                                <a href="{{ route('detail-work-orders') }}"
+                                   wire:navigate.hover
+                                   class="wo-link">
+                                    {{ $department->code }}
+                                </a>
+                            </td>
+
+                            <td class="cell-title" data-label="عنوان واحد">
+                                <span class="title-text">{{ $department->name }}</span>
+                            </td>
+
+                            <td class="cell-customer" data-label="کد واحد">
+                                <div class="cell-sub" style="color:var(--color-text-2)">
+                                    {{ $department->code ?? '—' }}
+                                </div>
+                            </td>
+
+                            <td class="cell-assignee" data-label="سرپرست واحد">
+                        <span class="avatar-stack">
+                            @foreach ($department->users as $user)
+                                <span class="avatar avatar--sm avatar--blue">{{ getInitials($user->name, '') }}</span>
+                                <span class="name">{{ $user->name }}</span>
+                            @endforeach
+                        </span>
+                            </td>
+
+                            <td class="cell-priority" data-label="تلفن واحد">
+                        <span class="badge badge--info">
+                            {{ $department->phone ?? '—' }}
+                        </span>
+                            </td>
+
+                            <td class="cell-status" data-label="وضعیت">
+                                @if ($department->is_active)
+                                    <span class="badge badge--success">
+                                <span class="badge__dot"></span>فعال
                             </span>
-                        </td>
-                        <td class="cell-priority" data-label="اولویت"><span class="badge badge--info">04132569</span></td>
-                        <td class="cell-status" data-label="وضعیت"><span class="badge badge--success"><span class="badge__dot"></span>فعال </span></td>
-                        <td class="cell-due cell-date date-today" data-label="سررسید">8 آبان 1404</td>
-                        <td class="cell-created cell-date" data-label="ایجاد">2 آبا</td>
-                        <td class="cell-actions">
-                            <button class="icon-btn icon-btn--sm" data-action="row-menu" data-id="WO-10482" aria-label="اقدامات برای WO-10482">
-                                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                    <circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>
-                                </svg>
-                            </button>
-                        </td>
-                    </tr>
+                                @else
+                                    <span class="badge badge--danger">
+                                <span class="badge__dot"></span>غیرفعال
+                            </span>
+                                @endif
+                            </td>
 
+                            <td class="cell-due cell-date" data-label="لوکیشن">
+                                {{ $department->location ?? '—' }}
+                            </td>
+
+                            <td class="cell-created cell-date" data-label="ایجاد">
+                                {{ verta($department->created_at)->format('%d %B') }}
+                            </td>
+
+                            <td class="cell-actions">
+                                <button class="icon-btn icon-btn--sm"
+                                        aria-label="اقدامات برای DEP-{{ $department->id }}">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <circle cx="5" cy="12" r="1.4"/>
+                                        <circle cx="12" cy="12" r="1.4"/>
+                                        <circle cx="19" cy="12" r="1.4"/>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="10" class="p-4" style="text-align: center">
+                                هیچ دپارتمانی یافت نشد.
+                            </td>
+                        </tr>
+                    @endforelse
                     </tbody>
                 </table>
 
+                {{ $this->departments->onEachSide(1)->links('livewire.custom-pagination') }}
+
             </div>
 
-            <!-- ==================== Pagination ==================== -->
-            <div class="pagination d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div class="pagination-info">نمایش <b>1–10</b> از <b>34</b> دستورکار</div>
-                <div class="pagination-controls d-flex align-items-center gap-1">
-                    <button class="icon-btn icon-btn--bordered icon-btn--sm" data-action="page" data-page="0" disabled aria-label="صفحه قبل">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-                             stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
-                    </button>
-                    <button class="page-btn is-active" data-action="page" data-page="1">1</button>
-                    <button class="page-btn" data-action="page" data-page="2">2</button>
-                    <button class="page-btn" data-action="page" data-page="3">3</button>
-                    <span class="page-ellipsis">…</span>
-                    <button class="page-btn" data-action="page" data-page="4">4</button>
-                    <button class="icon-btn icon-btn--bordered icon-btn--sm" data-action="page" data-page="2" aria-label="صفحه بعد">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-                             stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
-                    </button>
-                </div>
-            </div>
+{{--            <!-- ==================== Pagination ==================== -->--}}
+{{--            <div class="pagination d-flex justify-content-between align-items-center flex-wrap gap-3">--}}
+{{--                <div class="pagination-info">نمایش <b>1–10</b> از <b>34</b> دستورکار</div>--}}
+{{--                <div class="pagination-controls d-flex align-items-center gap-1">--}}
+{{--                    <button class="icon-btn icon-btn--bordered icon-btn--sm" data-action="page" data-page="0" disabled aria-label="صفحه قبل">--}}
+{{--                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"--}}
+{{--                             stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>--}}
+{{--                    </button>--}}
+{{--                    <button class="page-btn is-active" data-action="page" data-page="1">1</button>--}}
+{{--                    <button class="page-btn" data-action="page" data-page="2">2</button>--}}
+{{--                    <button class="page-btn" data-action="page" data-page="3">3</button>--}}
+{{--                    <span class="page-ellipsis">…</span>--}}
+{{--                    <button class="page-btn" data-action="page" data-page="4">4</button>--}}
+{{--                    <button class="icon-btn icon-btn--bordered icon-btn--sm" data-action="page" data-page="2" aria-label="صفحه بعد">--}}
+{{--                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"--}}
+{{--                             stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>--}}
+{{--                    </button>--}}
+{{--                </div>--}}
+{{--            </div>--}}
 
         </div>
     </div>

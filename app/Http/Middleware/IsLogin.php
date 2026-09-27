@@ -21,11 +21,9 @@ class IsLogin
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()
-                ->route('auth')
-                ->withErrors([
-                    'loginEmail' => 'حساب کاربری شما غیرفعال شده است.',
-                ]);
+            session()->flash('deActiveUser', 'حساب کاربری شما غیر فعال شده است.');
+
+            return redirect()->route('auth');
         }
 
         return $next($request);

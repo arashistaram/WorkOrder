@@ -3,16 +3,33 @@
 namespace App\Livewire\Dashboard\Department;
 
 use App\Models\Department;
+use App\Models\DepartmentUser;
+use App\Models\User;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithPagination;
+
 #[Layout('livewire.layouts._dashboard')]
 #[Title('واحد ها')]
 final class DepartmentController extends Component
 {
+    use WithPagination;
+
+    #[Url(as: 'q', history: true)]
+    public string $search = '';
+
+    #[Url(history: true)]
+    public int $perPage = 10;
+
     public bool $showModal = false;
     public ?int $departmentId = null;
 
@@ -23,7 +40,9 @@ final class DepartmentController extends Component
     public string $phone       = '';
     public string $location    = '';
 
-    public bool   $is_active   = true;
+    public ?int $managerId   = null;
+
+    public bool $is_active   = true;
 
     protected function rules(): array
     {
@@ -38,6 +57,35 @@ final class DepartmentController extends Component
         ];
     }
 
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->resetPage();
+    }
+
+    #[Computed]
+    public function departments(): LengthAwarePaginator
+    {
+        return Department::query()
+            ->with(['users:id,name'])
+            ->when($this->search, function ($q) {
+                $q->where(function ($query) {
+                    $query->where('name', 'like', "%{$this->search}%")
+                        ->orWhere('code', 'like', "%{$this->search}%")
+                        ->orWhere('phone', 'like', "%{$this->search}%")
+                        ->orWhereHas('users', function ($userQuery) {
+                            $userQuery->where('name', 'like', "%{$this->search}%");
+                        });
+                });
+            })
+            ->latest('id')
+            ->paginate($this->perPage);
+    }
     protected function messages(): array
     {
         return [
@@ -45,6 +93,14 @@ final class DepartmentController extends Component
             'name.min'      => 'نام واحد باید حداقل ۲ حرف باشد.',
             'code.unique'   => 'این کد قبلاً استفاده شده است.',
         ];
+    }
+
+    public function getUsers(): array
+    {
+        return User::query()->select('id', 'name')
+            ->where('is_active', 1)
+            ->pluck('id', 'name')
+            ->toArray();
     }
 
     #[On('open-department-form')]
@@ -82,17 +138,40 @@ final class DepartmentController extends Component
     {
         $data = $this->validate();
 
-        if ($this->departmentId) {
-            Department::query()->findOrFail($this->departmentId)->update($data);
-            $this->dispatch('department-updated');
-            $this->dispatch('toast', message: 'واحد به‌روزرسانی شد', type: 'success');
-        } else {
-            Department::query()->create($data);
-            $this->dispatch('department-created');
-            $this->dispatch('toast', message: 'واحد جدید ایجاد شد', type: 'success');
-        }
+        try {
+            DB::transaction(function () use ($data) {
+                if ($this->departmentId) {
+                    Department::query()
+                        ->findOrFail($this->departmentId)
+                        ->update($data);
+                } else {
+                    $department = Department::query()->create($data);
 
-        $this->close();
+                    DepartmentUser::query()->create([
+                        'department_id' => $department['id'],
+                        'user_id'       => $this->managerId,
+                        'role'          => DepartmentUser::ROLE_MANAGER,
+                        'is_active'     => $this->is_active,
+                        'joined_at'     => now(),
+                    ]);
+                }
+            });
+
+            $this->close();
+
+        } catch (\Throwable $e) {
+            logger()->error('خطا در ذخیره دپارتمان', [
+                'message' => $e->getMessage(),
+                'data'    => $data,
+            ]);
+
+            LivewireAlert::title('Error')
+                ->text('خطا در ذخیره اطلاعات. لطفاً مجدداً تلاش کنید.')
+                ->error()
+                ->timer(5000)
+                ->show();
+
+        }
     }
 
     public function render(): View|Factory|\Illuminate\View\View

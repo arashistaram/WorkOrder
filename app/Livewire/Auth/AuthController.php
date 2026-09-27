@@ -33,6 +33,16 @@ final class AuthController extends Component
     public string $regPassword = '';
     public string $regPasswordConfirmation = '';
 
+    public function boot(): void
+    {
+        if (session()->has('deActiveUser')) {
+            LivewireAlert::title('Warning')
+                ->text(session('deActiveUser'))
+                ->warning()
+                ->timer(5000)
+                ->show();
+        }
+    }
     protected function rules(): array
     {
         return match ($this->mode) {
@@ -94,9 +104,10 @@ final class AuthController extends Component
         if (! Auth::attempt($credentials, $this->remember)) {
             RateLimiter::hit($this->throttleKey(), 60);
 
-            $this->addError('loginUsername', 'نام کاربری یا رمز عبور اشتباه است.');
+            $this->addError('loginUsername', ' نام کاربری یا رمز عبور اشتباه است | یا غیر فعال شده است.');
             return;
         }
+
         Auth::user()->update(['last_login_at' => date('Y-m-d H:i:s')]);
         RateLimiter::clear($this->throttleKey());
         session()->regenerate();
