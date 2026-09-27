@@ -170,14 +170,16 @@
         </div>
 
         <div class="toolbar-filters d-flex align-items-center flex-wrap gap-2">
-            <select class="select" data-filter="status" aria-label="فیلتر بر اساس وضعیت">
+            <select class="select"
+                    wire:model.live="status"
+                    aria-label="فیلتر بر اساس وضعیت">
                 <option value="">همه وضعیت‌ها</option>
                 <option value="1">فعال</option>
-                <option value="0">غیر فعال</option>
+                <option value="0">غیرفعال</option>
             </select>
         </div>
 
-        <button class="btn btn--ghost btn--sm" data-action="clear-filters" id="clear-filters" disabled>
+        <button wire:click="resetStatus" class="btn btn--ghost btn--sm" data-action="clear-filters" id="clear-filters" @if($this->status == '') disabled @endif>
             <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12"/>

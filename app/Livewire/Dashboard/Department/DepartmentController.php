@@ -30,6 +30,9 @@ final class DepartmentController extends Component
     #[Url(history: true)]
     public int $perPage = 10;
 
+    #[Url(history: true)]
+    public ?string $status = '';
+
     public bool $showModal = false;
     public ?int $departmentId = null;
 
@@ -73,6 +76,9 @@ final class DepartmentController extends Component
     {
         return Department::query()
             ->with(['users:id,name'])
+            ->when($this->status !== '' && $this->status !== null, function ($query) {
+                $query->where('is_active', (bool) $this->status);
+            })
             ->when($this->search, function ($q) {
                 $q->where(function ($query) {
                     $query->where('name', 'like', "%{$this->search}%")
@@ -85,6 +91,11 @@ final class DepartmentController extends Component
             })
             ->latest('id')
             ->paginate($this->perPage);
+    }
+
+    public function resetStatus()
+    {
+        $this->status = null;
     }
     protected function messages(): array
     {
