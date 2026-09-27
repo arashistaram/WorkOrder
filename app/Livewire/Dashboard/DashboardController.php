@@ -13,18 +13,9 @@ use Livewire\Component;
 #[Title('داشبورد')]
 final class DashboardController extends Component
 {
-    public ?array $user = null;
-
-    public function mount(): void
-    {
-        $this->user = Auth::user()->only(['id', 'name', 'job_title']);
-    }
-
     public function render(): View|Factory|\Illuminate\View\View
     {
         return view('livewire.dashboard.dashboard')
-            ->layout('livewire.layouts._dashboard', [
-            'user' => $this->user,
-        ]);
+            ->layout('livewire.layouts._dashboard');
     }
 }

@@ -11,29 +11,18 @@
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
             داشبورد
         </a>
-        <a href="{{ route('work-orders') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('work-orders') ? 'is-active' : '' }}" data-action="nav" data-view="list" data-nav="list" aria-current="page">
+        <a href="{{ route('work-orders') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/work-orders') ? 'is-active' : '' }}" data-action="nav" data-view="list" data-nav="list" aria-current="page">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg>
             دستورکارها
             <span class="nav-count" id="nav-wo-count">0</span>
         </a>
 
         <p class="nav-label">سوابق</p>
-        <button class="nav-item" data-action="nav" data-view="customers" data-nav="customers">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15"/><path d="M16 10h2a2 2 0 0 1 2 2v9"/><path d="M2 21h20"/><path d="M8 8h4M8 12h4M8 16h4"/></svg>
-            مشتریان
-        </button>
-        <button class="nav-item" data-action="nav" data-view="projects" data-nav="projects">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h3.6l1.8 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-            پروژه‌ها
-        </button>
-        <button class="nav-item" data-action="nav" data-view="team" data-nav="team">
+
+        <a href="{{ route('department') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/department') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            تیم
-        </button>
-        <button class="nav-item" data-action="nav" data-view="assets" data-nav="assets">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>
-            دارایی‌ها
-        </button>
+            واحد ها
+        </a>
 
         <p class="nav-label">بینش‌ها</p>
         <button class="nav-item" data-action="nav" data-view="reports" data-nav="reports">
