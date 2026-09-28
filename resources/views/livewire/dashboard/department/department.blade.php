@@ -79,14 +79,16 @@
                                     <label>انتخاب مدیر واحد</label>
                                     <div class="global-search" style="width: 100%">
                                         <select wire:model="managerId">
-
+                                            <option value="">انتخاب کنید</option>
                                             @foreach($this->getUsers() as $key => $value)
                                                 <option value="{{ $value }}">{{ $key }}</option>
                                             @endforeach
 
                                         </select>
                                     </div>
-                                    @error('manager') <span class="field-error">{{ $message }}</span> @enderror
+                                    @error('managerId')
+                                        <span class="error text-danger">{{ $message }}</span>
+                                    @endError
                                 </div>
 
                                 {{-- توضیحات --}}
@@ -278,7 +280,7 @@
                                 <a href="{{ route('detail-work-orders') }}"
                                    wire:navigate.hover
                                    class="wo-link">
-                                    {{ $department->code }}
+                                    {{ $department->id }}
                                 </a>
                             </td>
 
@@ -327,8 +329,38 @@
                                 {{ verta($department->created_at)->format('%d %B') }}
                             </td>
 
-                            <td class="cell-actions">
-                                <button class="icon-btn icon-btn--sm"
+                            <td class="cell-actions"
+                                x-data="{
+                                    open: false,
+                                    x: 0,
+                                    y: 0,
+                                    toggle() {
+                                        const btn = $refs.trigger;
+                                        const r = btn.getBoundingClientRect();
+                                        const menuW = 180;
+                                        const menuH = 200;
+
+                                        let left = r.right - menuW;
+                                        if (left < 8) left = 8;
+
+                                        let top = r.bottom + 6;
+                                        if (top + menuH > window.innerHeight) {
+                                            top = r.top - menuH - 6;
+                                            if (top < 8) top = 8;
+                                        }
+
+                                        this.x = left;
+                                        this.y = top;
+                                        this.open = !this.open;
+                                    }
+                                }">
+
+                                <button x-ref="trigger"
+                                        class="icon-btn icon-btn--sm"
+                                        type="button"
+                                        @click.stop="toggle()"
+                                        :aria-expanded="open"
+                                        aria-haspopup="menu"
                                         aria-label="اقدامات برای DEP-{{ $department->id }}">
                                     <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                         <circle cx="5" cy="12" r="1.4"/>
@@ -336,7 +368,59 @@
                                         <circle cx="19" cy="12" r="1.4"/>
                                     </svg>
                                 </button>
+
+                                <template x-teleport="body">
+                                    <div class="row-menu"
+                                         x-show="open"
+                                         x-cloak
+                                         x-transition.opacity.duration.120ms
+                                         :style="`top:${y}px; left:${x}px;`"
+                                         role="menu"
+                                         @click.outside="open = false"
+                                         @keydown.escape.window="open = false">
+
+                                        <button class="row-menu__item"
+                                                type="button"
+                                                role="menuitem"
+                                                @click="open = false"
+                                                wire:click="open({{ $department->id }})">
+                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path d="M12 20h9"/>
+                                                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
+                                            </svg>
+                                            ویرایش
+                                        </button>
+
+                                        <button class="row-menu__item"
+                                                type="button"
+                                                role="menuitem"
+                                                @click="open = false"
+                                                wire:click="changeStatus({{ $department->id }})">
+                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path d="M5 12h14"/>
+                                            </svg>
+                                            {{ $department->is_active ? 'غیر فعال کردن' : 'فعال کردن' }}
+                                        </button>
+
+                                        <div class="row-menu__divider"></div>
+
+                                        <button class="row-menu__item row-menu__item--danger"
+                                                type="button"
+                                                role="menuitem"
+                                                @click="open = false"
+                                                wire:click="delete({{ $department->id }})"
+                                                wire:confirm="از حذف این واحد مطمئن هستید؟">
+                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path d="M3 6h18"/>
+                                                <path d="M8 6V4h8v2"/>
+                                                <path d="M6 6l1 14h10l1-14"/>
+                                            </svg>
+                                            حذف
+                                        </button>
+                                    </div>
+                                </template>
                             </td>
+
                         </tr>
                     @empty
                         <tr>
@@ -352,27 +436,106 @@
 
             </div>
 
-{{--            <!-- ==================== Pagination ==================== -->--}}
-{{--            <div class="pagination d-flex justify-content-between align-items-center flex-wrap gap-3">--}}
-{{--                <div class="pagination-info">نمایش <b>1–10</b> از <b>34</b> دستورکار</div>--}}
-{{--                <div class="pagination-controls d-flex align-items-center gap-1">--}}
-{{--                    <button class="icon-btn icon-btn--bordered icon-btn--sm" data-action="page" data-page="0" disabled aria-label="صفحه قبل">--}}
-{{--                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"--}}
-{{--                             stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>--}}
-{{--                    </button>--}}
-{{--                    <button class="page-btn is-active" data-action="page" data-page="1">1</button>--}}
-{{--                    <button class="page-btn" data-action="page" data-page="2">2</button>--}}
-{{--                    <button class="page-btn" data-action="page" data-page="3">3</button>--}}
-{{--                    <span class="page-ellipsis">…</span>--}}
-{{--                    <button class="page-btn" data-action="page" data-page="4">4</button>--}}
-{{--                    <button class="icon-btn icon-btn--bordered icon-btn--sm" data-action="page" data-page="2" aria-label="صفحه بعد">--}}
-{{--                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"--}}
-{{--                             stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>--}}
-{{--                    </button>--}}
-{{--                </div>--}}
-{{--            </div>--}}
 
         </div>
     </div>
 
 </div>
+
+@section('script')
+    <script>
+        (function () {
+            const menu = document.getElementById('rowMenu');
+            if (!menu) return;
+
+            let currentBtn = null;
+
+            function openMenu(btn) {
+                currentBtn = btn;
+                btn.setAttribute('aria-expanded', 'true');
+
+                menu.hidden = false;
+
+                const rect = btn.getBoundingClientRect();
+                const menuRect = menu.getBoundingClientRect();
+
+                let top  = rect.bottom + window.scrollY + 6;
+                let left = rect.right  + window.scrollX - menuRect.width;
+
+                if (left < window.scrollX + 8) {
+                    left = rect.left + window.scrollX;
+                }
+
+                if (rect.bottom + menuRect.height + 8 > window.innerHeight) {
+                    top = rect.top + window.scrollY - menuRect.height - 6;
+                }
+
+                menu.style.top  = top + 'px';
+                menu.style.left = left + 'px';
+            }
+
+            function closeMenu() {
+                if (currentBtn) currentBtn.setAttribute('aria-expanded', 'false');
+                currentBtn = null;
+                menu.hidden = true;
+            }
+
+            document.addEventListener('click', function (e) {
+                const trigger = e.target.closest('[data-action="row-menu"]');
+
+                if (trigger) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (currentBtn === trigger) { closeMenu(); return; }
+                    closeMenu();
+                    openMenu(trigger);
+                    return;
+                }
+
+                if (menu.contains(e.target)) {
+                    const item = e.target.closest('[data-menu-action]');
+                    if (item) {
+                        const action = item.dataset.menuAction;
+                        const id = currentBtn ? currentBtn.dataset.id : null;
+                        handleMenuAction(action, id);
+                        closeMenu();
+                    }
+                    return;
+                }
+
+                if (!menu.hidden) closeMenu();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && !menu.hidden) {
+                    const btn = currentBtn;
+                    closeMenu();
+                    btn && btn.focus();
+                }
+            });
+
+            window.addEventListener('resize', closeMenu);
+            window.addEventListener('scroll', closeMenu, true);
+
+            function handleMenuAction(action, id) {
+                switch (action) {
+                    case 'view':
+                        console.log('view', id);
+                        break;
+                    case 'edit':
+                        console.log('edit', id);
+                        break;
+                    case 'toggle':
+                        console.log('toggle', id);
+                        break;
+                    case 'delete':
+                        if (confirm('از حذف ' + id + ' مطمئن هستید؟')) {
+                            console.log('delete', id);
+                        }
+                        break;
+                }
+            }
+        })();
+
+    </script>
+@endsection

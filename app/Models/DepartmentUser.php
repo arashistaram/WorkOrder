@@ -12,8 +12,6 @@ class DepartmentUser extends Pivot
     public const string ROLE_MANAGER = 'manager';
     public const string ROLE_USER     = 'user';
 
-    public $incrementing = true;
-
     protected $fillable = [
         'department_id',
         'user_id',

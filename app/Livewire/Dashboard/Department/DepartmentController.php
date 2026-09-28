@@ -33,6 +33,12 @@ final class DepartmentController extends Component
     #[Url(history: true)]
     public ?string $status = '';
 
+    #[Url(history: true)]
+    public string $sortField = 'id';
+
+    #[Url(history: true)]
+    public string $sortDirection = 'desc';
+
     public bool $showModal = false;
     public ?int $departmentId = null;
 
@@ -60,6 +66,15 @@ final class DepartmentController extends Component
         ];
     }
 
+    protected array $sortable = [
+        'id',
+        'name',
+        'code',
+        'phone',
+        'is_active',
+        'location',
+        'created_at',
+    ];
 
     public function updatedSearch(): void
     {
@@ -68,6 +83,21 @@ final class DepartmentController extends Component
 
     public function updatedPerPage(): void
     {
+        $this->resetPage();
+    }
+
+    public function sortBy(string $field): void
+    {
+        if (! in_array($field, $this->sortable, true)) {
+            return;
+        }
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+
         $this->resetPage();
     }
 
@@ -89,11 +119,11 @@ final class DepartmentController extends Component
                         });
                 });
             })
-            ->latest('id')
+            ->orderBy($this->sortField, $this->sortDirection)
             ->paginate($this->perPage);
     }
 
-    public function resetStatus()
+    public function resetStatus(): void
     {
         $this->status = null;
     }
@@ -114,6 +144,17 @@ final class DepartmentController extends Component
             ->toArray();
     }
 
+    public function changeStatus(int $id): void
+    {
+        $department = Department::query()->findOrFail($id);
+        $department->update(['is_active' => ! $department->is_active]);
+    }
+
+    public function delete(int $id): void
+    {
+        Department::query()->findOrFail($id)->delete();
+    }
+
     #[On('open-department-form')]
     public function open(?int $id = null): void
     {
@@ -126,13 +167,14 @@ final class DepartmentController extends Component
         $this->departmentId = $id;
 
         if ($id) {
-            $dep = Department::query()->findOrFail($id);
+            $dep = Department::query()->with('users')->findOrFail($id);
             $this->name        = $dep->name ?? '';
             $this->code        = $dep->code ?? '';
             $this->description = $dep->description ?? '';
             $this->location    = $dep->location ?? '';
             $this->phone       = $dep->phone ?? '';
             $this->color       = $dep->color ?? '';
+            $this->managerId   = $dep->users[0]->id;
             $this->is_active   = (bool) $dep->is_active;
         }
 
@@ -149,12 +191,23 @@ final class DepartmentController extends Component
     {
         $data = $this->validate();
 
+        if (! $this->departmentId && empty($this->managerId)) {
+            $this->addError('managerId', 'انتخاب سرپرست واحد الزامی است.');
+            return;
+        }
+
+
         try {
             DB::transaction(function () use ($data) {
                 if ($this->departmentId) {
                     Department::query()
                         ->findOrFail($this->departmentId)
                         ->update($data);
+
+                    DepartmentUser::query()
+                        ->where('department_id', $this->departmentId)
+                        ->update(['user_id' => $this->managerId,]);
+
                 } else {
                     $department = Department::query()->create($data);
 
