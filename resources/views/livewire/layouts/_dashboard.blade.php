@@ -7,7 +7,6 @@
     @yield('style')
     <link rel="stylesheet" href="{{ asset('assets/dashboard/css/app.css') }}">
     @livewireStyles
-
 </head>
 <body>
 
@@ -1215,6 +1214,7 @@
 
 @livewireScripts
 @yield('script')
+<script src="{{ asset('assets/shared/sweetalert2.js') }}"></script>
 {{--<script src="{{ asset('assets/dashboard/js/app.js') }}"></script>--}}
 </body>
 </html>

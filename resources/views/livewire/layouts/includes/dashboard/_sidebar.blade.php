@@ -17,11 +17,16 @@
             <span class="nav-count" id="nav-wo-count">0</span>
         </a>
 
-        <p class="nav-label">سوابق</p>
+        <p class="nav-label">مدیریت</p>
 
         <a href="{{ route('department') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/department') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             واحد ها
+        </a>
+
+        <a href="{{ route('user-manage') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/user-manage') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            مدیریت کاربران
         </a>
 
         <p class="nav-label">بینش‌ها</p>

@@ -196,7 +196,6 @@ final class DepartmentController extends Component
             return;
         }
 
-
         try {
             DB::transaction(function () use ($data) {
                 if ($this->departmentId) {
