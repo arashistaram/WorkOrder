@@ -194,10 +194,8 @@ final class WorkOrderManageController extends Component
     {
         $data = $this->validate();
 
-        // تبدیل تاریخ شمسی به میلادی
         $data['due_date'] = $this->buildGregorianDueDate();
 
-        // این سه فیلد نباید مستقیم ذخیره بشن
         unset($data['due_year'], $data['due_month'], $data['due_day']);
 
         DB::transaction(function () use ($data) {
@@ -287,7 +285,6 @@ final class WorkOrderManageController extends Component
         $this->updatedDueMonth();
     }
 
-    /* ==================== Actions ==================== */
     public function delete(int $id): void
     {
         WorkOrder::query()->findOrFail($id)->delete();
@@ -326,8 +323,31 @@ final class WorkOrderManageController extends Component
     #[Computed]
     public function workOrders(): LengthAwarePaginator
     {
+        $user = auth()->user();
+
         return WorkOrder::query()
-            ->with(['department', 'assignee', 'status', 'priority','checklistItems'])
+            ->with(['department', 'assignee', 'status', 'priority'])
+            ->withCount([
+                'checklistItems as checklist_total',
+                'checklistItems as checklist_done' => fn($q) => $q->where('is_done', true),
+            ])
+
+            //manager
+            ->when($user->role === 'manager', function ($q) use ($user) {
+                $deptIds = $user->managedDepartments()->pluck('departments.id');
+                $q->whereIn('department_id', $deptIds);
+            })
+
+            //user
+            ->when($user->role === 'user', function ($q) use ($user) {
+                $q->where(function ($qq) use ($user) {
+                    $qq->where('assignee_id', $user->id)
+                        ->orWhere('created_by', $user->id);  // when created self
+                });
+            })
+
+
+            // admin
             ->when($this->search !== '', function ($q) {
                 $s = '%' . $this->search . '%';
                 $q->where(fn($qq) => $qq
@@ -348,7 +368,15 @@ final class WorkOrderManageController extends Component
     #[Computed]
     public function departmentsList(): Collection
     {
-        return Department::query()->orderBy('name')->get(['id', 'name']);
+        $user = auth()->user();
+
+        $query = Department::query()->orderBy('name');
+
+        if ($user->role === 'manager') {
+            $query->whereIn('id', $user->managedDepartments()->pluck('departments.id'));
+        }
+
+        return $query->get(['id', 'name']);
     }
 
     #[Computed]
@@ -382,12 +410,25 @@ final class WorkOrderManageController extends Component
     }
 
     #[Computed]
-    public function usersList(): Collection
+    public function usersList()
     {
-        return User::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'username']);
+        $user = auth()->user();
+
+        $query = User::query()->where('is_active', true)->orderBy('name');
+
+        if ($user->role === 'user') {
+            $query->where('id', $user->id);
+        }
+        elseif ($user->role === 'manager') {
+            $deptIds = $user->managedDepartments()->pluck('departments.id');
+            $memberIds = DB::table('department_users')
+                ->whereIn('department_id', $deptIds)
+                ->where('is_active', true)
+                ->pluck('user_id');
+            $query->whereIn('id', $memberIds);
+        }
+
+        return $query->get(['id', 'name']);
     }
     public function render(): View|Factory|\Illuminate\View\View
     {

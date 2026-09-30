@@ -11,6 +11,7 @@ use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -39,7 +40,11 @@ class WorkOrderDetailController extends Component
     public function mount(int $id): void
     {
         $this->workOrderId = $id;
+
         $wo = $this->workOrder;
+
+        Gate::authorize('view', $wo);
+
         $this->actualHours = $wo->actual_hours;
     }
 
@@ -90,6 +95,8 @@ class WorkOrderDetailController extends Component
 
     public function assign(): void
     {
+        Gate::authorize('assign', $this->workOrder);
+
         $this->validate([
             'assignToUserId' => 'required|exists:users,id',
             'assignToDeptId' => 'required|exists:departments,id',
@@ -144,6 +151,8 @@ class WorkOrderDetailController extends Component
 
     public function changeStatus(): void
     {
+        Gate::authorize('changeStatus', $this->workOrder);
+
         $this->validate([
             'newStatusId' => 'required|exists:work_order_statuses,id',
             'statusNote'  => 'nullable|string|max:1000',
@@ -195,6 +204,8 @@ class WorkOrderDetailController extends Component
 
     public function addChecklistItem(): void
     {
+        Gate::authorize('manageChecklist', $this->workOrder);
+
         $this->validate([
             'newChecklistTitle' => 'required|string|max:255',
         ], [
@@ -214,6 +225,8 @@ class WorkOrderDetailController extends Component
 
     public function toggleChecklistItem(int $itemId): void
     {
+        Gate::authorize('manageChecklist', $this->workOrder);
+
         $item = WorkOrderChecklistItem::query()
             ->where('work_order_id', $this->workOrderId)
             ->findOrFail($itemId);
@@ -229,6 +242,8 @@ class WorkOrderDetailController extends Component
 
     public function removeChecklistItem(int $itemId): void
     {
+        Gate::authorize('manageChecklist', $this->workOrder);
+
         WorkOrderChecklistItem::query()
             ->where('work_order_id', $this->workOrderId)
             ->findOrFail($itemId)
@@ -239,6 +254,8 @@ class WorkOrderDetailController extends Component
 
     public function saveActualHours(): void
     {
+        Gate::authorize('changeStatus', $this->workOrder);
+
         $this->validate([
             'actualHours' => 'nullable|numeric|min:0|max:9999',
         ]);

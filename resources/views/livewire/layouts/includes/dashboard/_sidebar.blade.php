@@ -14,7 +14,7 @@
         <a href="{{ route('work-orders') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/work-orders') ? 'is-active' : '' }}" data-action="nav" data-view="list" data-nav="list" aria-current="page">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg>
             دستورکارها
-            <span class="nav-count" id="nav-wo-count">0</span>
+            <livewire:shared.work-order-nav-count :key="'wo-nav-' . auth()->id()" />
         </a>
 
         <p class="nav-label">مدیریت</p>
@@ -43,24 +43,25 @@
             گزارش‌ها
         </button>
 
-        <p class="nav-label">تنطیمات</p>
+        @if(auth()->user()?->role === 'admin')
+            <p class="nav-label">تنطیمات</p>
 
-        <a href="{{ route('work-order-status-manage') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/work-order-status-manage') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            </svg>
-            وضعیت ها
-        </a>
+            <a href="{{ route('work-order-status-manage') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/work-order-status-manage') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                </svg>
+                وضعیت ها
+            </a>
 
-        <a href="{{ route('work-order-priorities-manage') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/work-order-priorities-manage') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            </svg>
-            اولویت ها
-        </a>
-
+            <a href="{{ route('work-order-priorities-manage') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/work-order-priorities-manage') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                </svg>
+                اولویت ها
+            </a>
+        @endif
     </nav>
 
     <div class="sidebar-footer">
@@ -105,52 +106,50 @@
 
 @section('script')
     <script>
-        document.addEventListener('click', (e) => {
-            const toggle = e.target.closest('[data-action="toggle-ws-menu"]');
+        (() => {
+            if (window.__wsMenuBound) return;
+            window.__wsMenuBound = true;
 
-            if (toggle) {
-                e.stopPropagation();
-                const wrap = toggle.closest('.workspace-switcher-wrap');
-                const menu = wrap.querySelector('.ws-menu');
-                const isOpen = !menu.hasAttribute('hidden');
-
-                document.querySelectorAll('.ws-menu:not([hidden])').forEach(m => {
-                    if (m !== menu) {
-                        m.setAttribute('hidden', '');
-                        m.closest('.workspace-switcher-wrap')
-                            ?.querySelector('[aria-expanded]')
-                            ?.setAttribute('aria-expanded', 'false');
-                    }
-                });
-
-                if (isOpen) {
-                    menu.setAttribute('hidden', '');
-                    toggle.setAttribute('aria-expanded', 'false');
-                } else {
-                    menu.removeAttribute('hidden');
-                    toggle.setAttribute('aria-expanded', 'true');
-                }
-                return;
-            }
-
-            if (!e.target.closest('.ws-menu')) {
-                document.querySelectorAll('.ws-menu:not([hidden])').forEach(m => {
+            const closeAll = (except = null) => {
+                document.querySelectorAll('.ws-menu:not([hidden])').forEach((m) => {
+                    if (m === except) return;
                     m.setAttribute('hidden', '');
                     m.closest('.workspace-switcher-wrap')
                         ?.querySelector('[aria-expanded]')
                         ?.setAttribute('aria-expanded', 'false');
                 });
-            }
-        });
+            };
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key !== 'Escape') return;
-            document.querySelectorAll('.ws-menu:not([hidden])').forEach(m => {
-                m.setAttribute('hidden', '');
-                m.closest('.workspace-switcher-wrap')
-                    ?.querySelector('[aria-expanded]')
-                    ?.setAttribute('false');
+            document.addEventListener('click', (e) => {
+                const toggle = e.target.closest('[data-action="toggle-ws-menu"]');
+
+                if (toggle) {
+                    const wrap = toggle.closest('.workspace-switcher-wrap');
+                    const menu = wrap?.querySelector('.ws-menu');
+                    if (!menu) return;
+
+                    const isOpen = !menu.hasAttribute('hidden');
+
+                    closeAll(menu); // بقیه منوها را ببند
+
+                    if (isOpen) {
+                        menu.setAttribute('hidden', '');
+                        toggle.setAttribute('aria-expanded', 'false');
+                    } else {
+                        menu.removeAttribute('hidden');
+                        toggle.setAttribute('aria-expanded', 'true');
+                    }
+                    return;
+                }
+
+                if (!e.target.closest('.ws-menu')) {
+                    closeAll();
+                }
             });
-        });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeAll();
+            });
+        })();
     </script>
 @endsection

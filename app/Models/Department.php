@@ -36,13 +36,15 @@ class Department extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'department_users')
-            ->withPivot('is_active')
+            ->withPivot(['role', 'is_active', 'joined_at'])
             ->withTimestamps();
     }
 
     public function managers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'department_users')
+            ->withPivot(['role', 'is_active'])
+            ->withTimestamps()
             ->wherePivot('role', 'manager')
             ->wherePivot('is_active', true);
     }

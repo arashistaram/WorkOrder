@@ -39,10 +39,10 @@ Route::middleware(IsLogin::class)->group(function () {
         Route::get('user-manage', UserManageController::class)
             ->name("user-manage");
 
-        Route::get('work-order-status-manage', WorkOrderStatusController::class)
+        Route::get('work-order-status-manage', WorkOrderStatusController::class)->middleware('role:admin')
             ->name("work-order-status-manage");
 
-        Route::get('work-order-priorities-manage', WorkOrderPriorityManageController::class)
+        Route::get('work-order-priorities-manage', WorkOrderPriorityManageController::class)->middleware('role:admin')
             ->name('work-order-priorities-manage');
 
     });

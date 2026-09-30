@@ -7,13 +7,15 @@
         </div>
 
         <div class="page-head-actions d-flex align-items-center gap-2">
-            <button wire:click="open" class="btn btn--primary" data-action="new-wo">
-                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
-                     stroke-linecap="round" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
-                سفارش کار جدید
-            </button>
+            @can('create', \App\Models\WorkOrder::class)
+                <button wire:click="open" class="btn btn--primary" data-action="new-wo">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
+                         stroke-linecap="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    سفارش کار جدید
+                </button>
+            @endcan
         </div>
     </div>
 
