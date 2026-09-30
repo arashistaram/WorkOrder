@@ -236,7 +236,7 @@
         <div class="toolbar-filters d-flex align-items-center flex-wrap gap-2">
             <select class="select" wire:model.live="statusFilter" aria-label="وضعیت">
                 <option value="">همه وضعیت‌ها</option>
-                @foreach($this->statusesList as $s)
+                @foreach($this->allStatusesList as $s)
                     <option value="{{ $s->id }}">{{ $s->label }}</option>
                 @endforeach
             </select>

@@ -113,7 +113,7 @@ class WorkOrder extends Model
     {
         return $this->due_date
             && ! $this->status?->is_final
-            && $this->due_date->isPast();
+            && $this->due_date->lt(today());
     }
 
 

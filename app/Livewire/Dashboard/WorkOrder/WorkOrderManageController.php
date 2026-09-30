@@ -246,13 +246,21 @@ final class WorkOrderManageController extends Component
             return null;
         }
 
-        $validDays = verta()->daysInMonth($this->due_year, $this->due_month);
-        $day = min($this->due_day, $validDays);
-
         try {
-            $v = verta()->year($this->due_year)->month($this->due_month)->day($day);
-            return $v->formatGregorian('Y-m-d');
+            $v = verta()
+                ->year($this->due_year)
+                ->month($this->due_month)
+                ->day($this->due_day);
+
+            return $v->toCarbon()->format('Y-m-d');
+
         } catch (\Throwable $e) {
+            \Log::error('buildGregorianDueDate failed', [
+                'y' => $this->due_year,
+                'm' => $this->due_month,
+                'd' => $this->due_day,
+                'error' => $e->getMessage(),
+            ]);
             return null;
         }
     }
@@ -353,6 +361,16 @@ final class WorkOrderManageController extends Component
         if (! $this->workOrderId) {
             $query->whereIn('key', ['draft', 'pending']);
         }
+
+        return $query->get(['id', 'label', 'color', 'key']);
+    }
+
+    #[Computed]
+    public function allStatusesList(): Collection
+    {
+        $query = WorkOrderStatus::query()
+            ->where('is_active', true)
+            ->orderBy('id');
 
         return $query->get(['id', 'label', 'color', 'key']);
     }

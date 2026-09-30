@@ -959,3 +959,7 @@ table.table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5p
     padding-inline-start: 28px;
     padding-inline-end: 10px;
 }
+
+.toolbar-filters.d-flex.align-items-center.flex-wrap.gap-2{
+    width: 55%;
+}

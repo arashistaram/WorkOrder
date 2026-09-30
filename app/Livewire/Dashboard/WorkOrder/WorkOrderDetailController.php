@@ -56,7 +56,7 @@ class WorkOrderDetailController extends Component
         ])->findOrFail($this->workOrderId);
     }
 
-    #[Computed]
+
     public function statusesList()
     {
         return WorkOrderStatus::query()->active()->orderBy('id')->get(['id', 'label', 'color']);
