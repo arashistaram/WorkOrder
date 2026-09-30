@@ -56,4 +56,10 @@ class Department extends Model
     {
         return $this->members()->wherePivot('is_active', true);
     }
+
+    public function members(): BelongsToMany
+    {
+        return $this->users()->wherePivot('role', 'user')
+            ->wherePivot('is_active', true);
+    }
 }

@@ -4,6 +4,7 @@ use App\Http\Middleware\IsLogin;
 use App\Livewire\Auth\AuthController;
 use App\Livewire\Dashboard\DashboardController;
 use App\Livewire\Dashboard\Department\DepartmentController;
+use App\Livewire\Dashboard\Department\DepartmentUsersController;
 use App\Livewire\Dashboard\User\UserManageController;
 use App\Livewire\Dashboard\WordOrder\DetailWorkOrderController;
 use App\Livewire\Dashboard\WordOrder\WorkOrderController;
@@ -31,6 +32,7 @@ Route::middleware(IsLogin::class)->group(function () {
         Route::get('department', DepartmentController::class)->name("department");
 
         Route::get('user-manage', UserManageController::class)->name("user-manage");
+
     });
 
 });

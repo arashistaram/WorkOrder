@@ -199,7 +199,6 @@
             </select>
         </div>
 
-
         <button wire:click="resetStatus"
                 class="btn btn--ghost btn--sm"
                 id="clear-filters"

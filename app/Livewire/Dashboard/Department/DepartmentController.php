@@ -7,6 +7,7 @@ use App\Models\DepartmentUser;
 use App\Models\User;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
@@ -53,6 +54,12 @@ final class DepartmentController extends Component
 
     public bool $is_active   = true;
 
+
+    public bool $showAssignModal = false;
+    public ?int $assignDepartmentId = null;
+    public string $assignSearch = '';
+
+    public array $assignRows = [];
     protected function rules(): array
     {
         return [
@@ -76,6 +83,105 @@ final class DepartmentController extends Component
         'created_at',
     ];
 
+    public function openAssign(): void
+    {
+        $this->resetValidation();
+        $this->assignDepartmentId = null;
+        $this->assignSearch       = '';
+        $this->assignRows         = [];
+        $this->showAssignModal    = true;
+    }
+
+    public function closeAssign(): void
+    {
+        $this->showAssignModal = false;
+        $this->resetValidation();
+    }
+
+    public function updatedAssignDepartmentId(): void
+    {
+        $this->assignRows = $this->buildAssignRows();
+    }
+
+    public function updatedAssignSearch(): void
+    {
+        $this->assignRows = $this->buildAssignRows();
+    }
+
+    protected function buildAssignRows(): array
+    {
+        if (! $this->assignDepartmentId) return [];
+
+        $dept = Department::with('users')->find($this->assignDepartmentId);
+        if (! $dept) return [];
+
+        $existing = $dept->users->keyBy('id');
+
+        $users = User::query()
+            ->where('is_active', true)
+            ->when($this->assignSearch !== '', function ($q) {
+                $s = '%' . $this->assignSearch . '%';
+                $q->where(fn($qq) =>
+                $qq->where('name', 'like', $s)
+                    ->orWhere('username', 'like', $s)
+                );
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'username']);
+
+
+        $rows = [];
+        foreach ($users as $u) {
+            $isMember = $existing->has($u->id);
+            $rows[$u->id] = [
+                'name'     => $u->name ?? $u->username,
+                'username' => $u->username,
+                'selected' => $isMember,
+                'role'     => $isMember ? ($existing[$u->id]->pivot->role ?? 'user') : 'user',
+            ];
+        }
+        return $rows;
+    }
+
+    public function saveAssign(): void
+    {
+        $this->validate([
+            'assignDepartmentId'    => 'required|exists:departments,id',
+            'assignRows'            => 'array',
+            'assignRows.*.selected' => 'boolean',
+            'assignRows.*.role'     => 'in:manager,user',
+        ], [
+            'assignDepartmentId.required' => 'یک واحد را انتخاب کنید.',
+            'assignDepartmentId.exists'   => 'واحد انتخابی معتبر نیست.',
+        ]);
+
+        $dept = Department::query()->findOrFail($this->assignDepartmentId);
+
+        $sync = [];
+        foreach ($this->assignRows as $userId => $row) {
+            if (!empty($row['selected'])) {
+                $sync[$userId] = [
+                    'role'       => $row['role'] ?? 'user',
+                    'is_active'  => true,
+                    'joined_at'  => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        $dept->users()->sync($sync);
+
+        $this->closeAssign();
+        $this->dispatch('notify', type: 'success', message: 'تخصیص کاربران ذخیره شد.');
+    }
+
+    /* ==================== Computed ==================== */
+    #[Computed]
+    public function departmentsList(): Collection
+    {
+        return Department::query()->orderBy('name')->get(['id', 'name']);
+    }
     public function updatedSearch(): void
     {
         $this->resetPage();

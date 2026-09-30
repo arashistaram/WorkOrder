@@ -77,4 +77,15 @@ class User extends Authenticatable
             ->exists();
     }
 
+    public function activeDepartments(): BelongsToMany
+    {
+        return $this->departments()->wherePivot('is_active', true);
+    }
+
+    public function managedDepartments(): BelongsToMany
+    {
+        return $this->departments()->wherePivot('role', 'manager')
+            ->wherePivot('is_active', true);
+    }
+
 }

@@ -8,6 +8,17 @@
 
         <div class="page-head-actions d-flex align-items-center gap-2">
 
+            <button style="border: 1px solid #ccc;" wire:click="openAssign" class="btn btn--ghost" data-action="assign-users">
+                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                تخصیص کاربران به واحد
+            </button>
+
             <button wire:click="open" class="btn btn--primary" data-action="new-dep">
                 <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
                      stroke-linecap="round" aria-hidden="true">
@@ -15,7 +26,129 @@
                 </svg>
                 واحد جدید
             </button>
+
         </div>
+    </div>
+
+
+    {{-- ==================== Modal: تخصیص کاربران ==================== --}}
+    <div x-data="{ open: @entangle('showAssignModal') }"
+         x-init="$watch('open', v => document.body.classList.toggle('is-locked', v))">
+        @if($showAssignModal)
+            <div class="modal-backdrop" wire:click.self="closeAssign">
+                <div class="modal" role="dialog" aria-modal="true" aria-labelledby="assign-title">
+
+                    <div class="modal-head">
+                        <div>
+                            <h2 id="assign-title">تخصیص کاربران به واحد</h2>
+                            <p>یک واحد انتخاب کنید، سپس کاربران مورد نظر را به آن اضافه یا حذف کنید.</p>
+                        </div>
+                        <button type="button" class="icon-btn" wire:click="closeAssign" aria-label="بستن">
+                            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 6 6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form wire:submit="saveAssign" novalidate>
+                        <div class="modal-body">
+
+                            {{-- انتخاب واحد --}}
+                            <div class="field @error('assignDepartmentId') has-error @enderror">
+                                <label>واحد <span class="req">*</span></label>
+                                <div class="global-search" style="width:100%">
+                                    <select wire:model.live="assignDepartmentId">
+                                        <option value="">— یک واحد انتخاب کنید —</option>
+                                        @foreach($this->departmentsList as $d)
+                                            <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                @error('assignDepartmentId')
+                                <span class="field-error">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            @if($assignDepartmentId)
+                                {{-- جستجو --}}
+                                <div class="field" style="margin-top:12px">
+                                    <label>جستجوی کاربر</label>
+                                    <div class="global-search" style="width:100%">
+                                        <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+                                             aria-hidden="true">
+                                            <circle cx="11" cy="11" r="7"/>
+                                            <path d="m20 20-3.6-3.6"/>
+                                        </svg>
+                                        <input type="search"
+                                               wire:model.live.debounce.300ms="assignSearch"
+                                               placeholder="نام یا نام کاربری...">
+                                    </div>
+                                </div>
+
+                                <div class="form-section-label" style="margin-top:8px">
+                                    کاربران
+                                    <span class="badge badge--info" style="margin-inline-start:8px">
+                                    {{ collect($assignRows)->where('selected', true)->count() }} انتخاب‌شده
+                                </span>
+                                </div>
+
+                                <div class="assign-list">
+                                    @forelse($assignRows as $userId => $row)
+                                        <div class="assign-row"
+                                             wire:key="assign-{{ $userId }}"
+                                             x-data
+                                             :class="{ 'is-selected': {{ $row['selected'] ? 'true' : 'false' }} }">
+
+                                            <label class="assign-row__check">
+                                                <input type="checkbox"
+                                                       class="checkbox"
+                                                       wire:model.live="assignRows.{{ $userId }}.selected">
+                                                <span class="assign-row__user">
+                                                <span class="avatar avatar--sm avatar--blue">
+                                                    {{ getInitials($row['name'], '') }}
+                                                </span>
+                                                <span class="assign-row__info">
+                                                    <span class="assign-row__name">{{ $row['name'] }}</span>
+                                                    <span class="assign-row__meta" dir="ltr">{{ $row['username'] }}</span>
+                                                </span>
+                                            </span>
+                                            </label>
+
+                                            <select class="select select--sm"
+                                                    wire:model="assignRows.{{ $userId }}.role"
+                                                    @disabled(!$row['selected'])
+                                                    aria-label="نقش در واحد">
+                                                <option value="user">عضو</option>
+                                                <option value="manager">مدیر</option>
+                                            </select>
+                                        </div>
+                                    @empty
+                                        <div class="assigned-empty">کاربری برای نمایش وجود ندارد.</div>
+                                    @endforelse
+                                </div>
+                            @endif
+
+                        </div>
+
+                        <div class="modal-foot">
+                            <span class="spacer"></span>
+                            <button type="button" class="btn" wire:click="closeAssign">انصراف</button>
+                            <button type="submit"
+                                    class="btn btn--primary"
+                                    wire:loading.attr="disabled"
+                                    wire:target="saveAssign">
+                                <span wire:loading.remove wire:target="saveAssign">ذخیره تخصیص</span>
+                                <span wire:loading wire:target="saveAssign">در حال ذخیره…</span>
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        @endif
     </div>
 
 
