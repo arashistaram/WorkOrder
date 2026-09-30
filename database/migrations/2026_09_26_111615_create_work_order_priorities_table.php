@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('key', 20)->unique();   // low, medium, high, critical
             $table->string('label');                // "کم", "متوسط", ...
             $table->string('color', 20)->default('gray');
+            $table->unsignedTinyInteger('level')->default(0); // 0=کمترین، 4=بیشترین
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

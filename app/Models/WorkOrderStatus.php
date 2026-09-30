@@ -22,4 +22,26 @@ class WorkOrderStatus extends Model
     public function workOrders(): HasMany {
         return $this->hasMany(WorkOrder::class, 'status_id');
     }
+
+    public function scopeActive($q)
+    {
+        return $q->where('is_active', true);
+    }
+
+    public function scopeFinal($q)
+    {
+        return $q->where('is_final', true);
+    }
+
+    public function getBadgeClassAttribute(): string
+    {
+        return match ($this->color) {
+            'green'  => 'badge--success',
+            'red'    => 'badge--danger',
+            'yellow' => 'badge--warning',
+            'blue'   => 'badge--info',
+            'purple' => 'badge--info',
+            default  => 'badge--info',
+        };
+    }
 }

@@ -38,14 +38,14 @@ class User extends Authenticatable
 
     public function departments(): BelongsToMany
     {
-        return $this->belongsToMany(Department::class, 'department_user')
+        return $this->belongsToMany(Department::class, 'department_users')
             ->withPivot(['role', 'is_active', 'joined_at', 'left_at'])
             ->withTimestamps();
     }
 
     public function supervisedDepartments(): BelongsToMany
     {
-        return $this->belongsToMany(Department::class, 'department_user')
+        return $this->belongsToMany(Department::class, 'department_users')
             ->wherePivot('role', 'supervisor')
             ->wherePivot('is_active', true);
     }

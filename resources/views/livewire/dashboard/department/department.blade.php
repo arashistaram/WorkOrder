@@ -410,11 +410,7 @@
                             </td>
 
                             <td class="cell-wo" data-label="شناسه">
-                                <a href="{{ route('detail-work-orders') }}"
-                                   wire:navigate.hover
-                                   class="wo-link">
-                                    {{ $department->id }}
-                                </a>
+                                {{ $department->id }}
                             </td>
 
                             <td class="cell-title" data-label="عنوان واحد">

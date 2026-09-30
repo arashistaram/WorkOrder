@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Query\Builder;
 
 class WorkOrder extends Model
 {
@@ -58,6 +58,17 @@ class WorkOrder extends Model
     public function statusHistory(): HasMany{
         return $this->hasMany(WorkOrderStatusHistory::class);
     }
+
+    public function statusHistories(): HasMany {
+        return $this->hasMany(WorkOrderStatusHistory::class)
+            ->orderByDesc('created_at');
+    }
+
+    public function assignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
+    }
+
     public function checklistItems(): HasMany {
         return $this->hasMany(WorkOrderChecklistItem::class)->orderBy('sort_order');
     }
@@ -88,5 +99,34 @@ class WorkOrder extends Model
     public function scopeOverdue(Builder $q): Builder
     {
         return $q->active()->whereDate('due_date', '<', now()->toDateString());
+    }
+
+    public function getProgressAttribute(): int
+    {
+        $total = $this->checklistItems->count();
+        if ($total === 0) return 0;
+        $done = $this->checklistItems->where('is_done', true)->count();
+        return (int) round(($done / $total) * 100);
+    }
+
+    public function getIsOverdueAttribute(): bool
+    {
+        return $this->due_date
+            && ! $this->status?->is_final
+            && $this->due_date->isPast();
+    }
+
+
+    public static function generateCode(): string
+    {
+        $year  = verta()->format('Y');
+        $count = static::withTrashed()->whereYear('created_at', now()->year)->count() + 1;
+
+        do {
+            $code = sprintf('WO-%s-%04d', $year, $count);
+            $count++;
+        } while (static::withTrashed()->where('code', $code)->exists());
+
+        return $code;
     }
 }
