@@ -250,12 +250,12 @@
                 @endforeach
             </select>
 
-            <select class="select" wire:model.live="deptFilter" aria-label="واحد">
-                <option value="">همه واحدها</option>
-                @foreach($this->departmentsList as $d)
-                    <option value="{{ $d->id }}">{{ $d->name }}</option>
-                @endforeach
-            </select>
+{{--            <select class="select" wire:model.live="deptFilter" aria-label="واحد">--}}
+{{--                <option value="">همه واحدها</option>--}}
+{{--                @foreach($this->departmentsList as $d)--}}
+{{--                    <option value="{{ $d->id }}">{{ $d->name }}</option>--}}
+{{--                @endforeach--}}
+{{--            </select>--}}
 
             <select class="select" wire:model.live="assigneeFilter" aria-label="مسئول">
                 <option value="">همه مسئول‌ها</option>
@@ -365,6 +365,7 @@
                             </td>
 
                             <td class="cell-assignee" data-label="مسئول">
+
                                 @if($wo->assignee)
                                     <span class="avatar-stack">
                                         <span class="avatar avatar--sm avatar--blue">
@@ -460,33 +461,35 @@
                                             جزئیات
                                         </a>
 
-                                        <button class="row-menu__item"
-                                                type="button"
-                                                role="menuitem"
-                                                @click="open = false"
-                                                wire:click="open({{ $wo->id }})">
-                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M12 20h9"/>
-                                                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
-                                            </svg>
-                                            ویرایش
-                                        </button>
+                                        @if(auth()->user()->role !== 'user')
+                                            <button class="row-menu__item"
+                                                    type="button"
+                                                    role="menuitem"
+                                                    @click="open = false"
+                                                    wire:click="open({{ $wo->id }})">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M12 20h9"/>
+                                                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
+                                                </svg>
+                                                ویرایش
+                                            </button>
 
-                                        <div class="row-menu__divider"></div>
+                                            <div class="row-menu__divider"></div>
 
-                                        <button class="row-menu__item row-menu__item--danger"
-                                                type="button"
-                                                role="menuitem"
-                                                @click="open = false"
-                                                wire:click="delete({{ $wo->id }})"
-                                                wire:confirm="از حذف این سفارش کار مطمئن هستید؟">
-                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M3 6h18"/>
-                                                <path d="M8 6V4h8v2"/>
-                                                <path d="M6 6l1 14h10l1-14"/>
-                                            </svg>
-                                            حذف
-                                        </button>
+                                            <button class="row-menu__item row-menu__item--danger"
+                                                    type="button"
+                                                    role="menuitem"
+                                                    @click="open = false"
+                                                    wire:click="delete({{ $wo->id }})"
+                                                    wire:confirm="از حذف این سفارش کار مطمئن هستید؟">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M3 6h18"/>
+                                                    <path d="M8 6V4h8v2"/>
+                                                    <path d="M6 6l1 14h10l1-14"/>
+                                                </svg>
+                                                حذف
+                                            </button>
+                                        @endif
                                     </div>
                                 </template>
                             </td>

@@ -7,11 +7,13 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderChecklistItem;
 use App\Models\WorkOrderStatus;
+use App\Services\OutputMessengerService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -35,7 +37,9 @@ class WorkOrderDetailController extends Component
 
     public string $newChecklistTitle = '';
 
+
     public ?float $actualHours = null;
+
 
     public function mount(int $id): void
     {
@@ -46,6 +50,12 @@ class WorkOrderDetailController extends Component
         Gate::authorize('view', $wo);
 
         $this->actualHours = $wo->actual_hours;
+    }
+
+    protected function refreshWorkOrder(): void
+    {
+        unset($this->workOrder);
+        unset($this->permissions);
     }
 
     #[Computed]
@@ -61,29 +71,67 @@ class WorkOrderDetailController extends Component
         ])->findOrFail($this->workOrderId);
     }
 
+    #[Computed]
+    public function permissions(): array
+    {
+        $user = auth()->user();
+        $wo   = $this->workOrder;
 
+        return [
+            'assign'            => $user->can('assign', $wo),
+            'changeStatus'      => $user->can('changeStatus', $wo),
+            'manageChecklist'   => $user->can('manageChecklist', $wo),
+            'updateActualHours' => $user->can('updateActualHours', $wo),
+            'update'            => $user->can('update', $wo),
+            'delete'            => $user->can('delete', $wo),
+        ];
+    }
     public function statusesList()
     {
-        return WorkOrderStatus::query()->active()->orderBy('id')->get(['id', 'label', 'color']);
+        return WorkOrderStatus::query()
+            ->active()
+            ->orderBy('id')
+            ->get(['id', 'label', 'color', 'key']);
     }
 
     #[Computed]
     public function usersList(): Collection
     {
-        return User::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        return User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'username']);
     }
 
     #[Computed]
     public function departmentsList(): Collection
     {
-        return Department::query()->orderBy('name')->get(['id', 'name']);
+        return Department::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    #[Computed]
+    public function departmentMembers(): Collection
+    {
+        return Department::query()
+            ->find($this->workOrder->department_id)
+            ?->users()
+            ->wherePivot('is_active', true)
+            ->orderBy('users.name')
+            ->get(['users.id', 'users.name', 'users.username'])
+            ?? new Collection();
     }
 
     public function openAssignModal(): void
     {
+        Gate::authorize('assign', $this->workOrder);
+
         $this->reset(['assignToUserId', 'assignToDeptId', 'assignNote']);
+
         $this->assignToUserId = $this->workOrder->assignee_id;
         $this->assignToDeptId = $this->workOrder->department_id;
+
         $this->showAssignModal = true;
     }
 
@@ -93,6 +141,9 @@ class WorkOrderDetailController extends Component
         $this->resetValidation();
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function assign(): void
     {
         Gate::authorize('assign', $this->workOrder);
@@ -106,10 +157,24 @@ class WorkOrderDetailController extends Component
             'assignToDeptId.required' => 'واحد مقصد را انتخاب کنید.',
         ]);
 
-        DB::transaction(function () {
+        $belongs = Department::query()
+            ->find($this->assignToDeptId)
+            ?->users()
+            ->where('users.id', $this->assignToUserId)
+            ->exists();
+
+        if (! $belongs) {
+            $this->addError('assignToUserId', 'کاربر انتخابی عضو واحد مقصد نیست.');
+            return;
+        }
+
+        $assignee = null;
+
+        DB::transaction(function () use (&$assignee) {
             $wo = $this->workOrder;
 
-            $wo->assignments()->whereNull('unassigned_at')
+            $wo->assignments()
+                ->whereNull('unassigned_at')
                 ->update(['unassigned_at' => now()]);
 
             $wo->assignments()->create([
@@ -121,23 +186,73 @@ class WorkOrderDetailController extends Component
                 'assigned_at'        => now(),
             ]);
 
-            $wo->update([
-                'assignee_id'    => $this->assignToUserId,
-                'assigned_by'    => auth()->id(),
-                'assigned_at'    => now(),
-                'department_id'  => $this->assignToDeptId,
-            ]);
+            $assignedId = WorkOrderStatus::query()->where('key', 'assigned')->value('id');
+
+            $updates = [
+                'assignee_id'   => $this->assignToUserId,
+                'assigned_by'   => auth()->id(),
+                'assigned_at'   => now(),
+                'department_id' => $this->assignToDeptId,
+            ];
+
+            if ($assignedId && (int) $wo->status_id !== (int) $assignedId) {
+                $updates['status_id'] = $assignedId;
+
+                $wo->statusHistories()->create([
+                    'from_status_id' => $wo->status_id,
+                    'to_status_id'   => $assignedId,
+                    'changed_by'     => auth()->id(),
+                    'note'           => 'تخصیص به ' . (User::find($this->assignToUserId)?->name ?? ''),
+                    'created_at'     => now(),
+                ]);
+            }
+
+            $wo->update($updates);
+
+            $assignee = User::query()->find($this->assignToUserId);
         });
 
-        unset($this->workOrder); // refresh
+        $this->refreshWorkOrder();
         $this->closeAssignModal();
 
         LivewireAlert::title('موفق')->text('کاربر تخصیص داده شد.')
-            ->success()->timer(3000)->show();
+            ->success()->timer(2500)->show();
+
+        if ($assignee) {
+            $this->notifyAssignee($assignee);
+        }
+    }
+
+    protected function notifyAssignee(User $assignee): void
+    {
+        try {
+            $wo = $this->workOrder;
+
+            app(OutputMessengerService::class)->notifyUser(
+                $assignee,
+                "📋 سفارش کار {$wo->code}",
+                "سفارش «{$wo->title}» به شما تخصیص داده شد.\n"
+                . "اولویت: " . ($wo->priority?->label ?? '—') . "\n"
+                . "سررسید: " . ($wo->due_date ? verta($wo->due_date)->format('Y/m/d') : '—'),
+                [
+                    'type' => 'work_order_assigned',
+                    'wo_id' => $wo->id,
+                    'url'  => route('work-orders.detail', $wo->id),
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::error('OutputMessenger: assign notify failed', [
+                'wo_id'    => $this->workOrderId,
+                'assignee' => $assignee->id,
+                'error'    => $e->getMessage(),
+            ]);
+        }
     }
 
     public function openStatusModal(): void
     {
+        Gate::authorize('changeStatus', $this->workOrder);
+
         $this->newStatusId = $this->workOrder->status_id;
         $this->statusNote  = '';
         $this->showStatusModal = true;
@@ -149,6 +264,9 @@ class WorkOrderDetailController extends Component
         $this->resetValidation();
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function changeStatus(): void
     {
         Gate::authorize('changeStatus', $this->workOrder);
@@ -163,7 +281,8 @@ class WorkOrderDetailController extends Component
         $wo = $this->workOrder;
 
         if ((int) $wo->status_id === (int) $this->newStatusId) {
-            LivewireAlert::title('توجه')->text('وضعیت فعلی همان وضعیت انتخابی است.')
+            LivewireAlert::title('توجه')
+                ->text('وضعیت فعلی همان وضعیت انتخابی است.')
                 ->info()->timer(2500)->show();
             return;
         }
@@ -181,7 +300,6 @@ class WorkOrderDetailController extends Component
 
             $updates = ['status_id' => $this->newStatusId];
 
-            // آپدیت timestamp های مربوطه
             if ($newStatus->key === 'in_progress' && ! $wo->started_at) {
                 $updates['started_at'] = now();
             }
@@ -195,7 +313,7 @@ class WorkOrderDetailController extends Component
             $wo->update($updates);
         });
 
-        unset($this->workOrder);
+        $this->refreshWorkOrder();
         $this->closeStatusModal();
 
         LivewireAlert::title('موفق')->text('وضعیت تغییر کرد.')
@@ -220,7 +338,8 @@ class WorkOrderDetailController extends Component
         ]);
 
         $this->newChecklistTitle = '';
-        unset($this->workOrder);
+
+        $this->refreshWorkOrder();
     }
 
     public function toggleChecklistItem(int $itemId): void
@@ -237,7 +356,7 @@ class WorkOrderDetailController extends Component
             'done_at' => $item->is_done ? null : now(),
         ]);
 
-        unset($this->workOrder);
+        $this->refreshWorkOrder();
     }
 
     public function removeChecklistItem(int $itemId): void
@@ -249,23 +368,26 @@ class WorkOrderDetailController extends Component
             ->findOrFail($itemId)
             ->delete();
 
-        unset($this->workOrder);
+        $this->refreshWorkOrder();
     }
+
 
     public function saveActualHours(): void
     {
-        Gate::authorize('changeStatus', $this->workOrder);
+        Gate::authorize('updateActualHours', $this->workOrder);
 
         $this->validate([
             'actualHours' => 'nullable|numeric|min:0|max:9999',
         ]);
 
         $this->workOrder->update(['actual_hours' => $this->actualHours]);
-        unset($this->workOrder);
+
+        $this->refreshWorkOrder();
 
         LivewireAlert::title('موفق')->text('ساعات واقعی ذخیره شد.')
             ->success()->timer(2000)->show();
     }
+
 
     public function render(): View|Factory|\Illuminate\View\View
     {

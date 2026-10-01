@@ -9,6 +9,7 @@ use App\Livewire\Dashboard\Department\DepartmentController;
 use App\Livewire\Dashboard\User\UserManageController;
 use App\Livewire\Dashboard\WorkOrder\WorkOrderManageController;
 use App\Livewire\Dashboard\WorkOrder\WorkOrderDetailController;
+use App\Livewire\OutputMessengerManageController;
 use Illuminate\Support\Facades\Route;
 
 Route::get("/", AuthController::class)
@@ -45,6 +46,9 @@ Route::middleware(IsLogin::class)->group(function () {
         Route::get('work-order-priorities-manage', WorkOrderPriorityManageController::class)->middleware('role:admin')
             ->name('work-order-priorities-manage');
 
+        Route::get('output-messenger-manage', OutputMessengerManageController::class)
+//            ->middleware('role:admin')
+            ->name('output-messenger-manage');
     });
 
 });

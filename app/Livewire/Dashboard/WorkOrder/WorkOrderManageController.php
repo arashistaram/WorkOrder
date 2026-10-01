@@ -332,22 +332,23 @@ final class WorkOrderManageController extends Component
                 'checklistItems as checklist_done' => fn($q) => $q->where('is_done', true),
             ])
 
-            //manager
             ->when($user->role === 'manager', function ($q) use ($user) {
                 $deptIds = $user->managedDepartments()->pluck('departments.id');
-                $q->whereIn('department_id', $deptIds);
-            })
 
-            //user
-            ->when($user->role === 'user', function ($q) use ($user) {
-                $q->where(function ($qq) use ($user) {
-                    $qq->where('assignee_id', $user->id)
-                        ->orWhere('created_by', $user->id);  // when created self
+                $q->where(function ($qq) use ($deptIds, $user) {
+                    $qq->whereIn('department_id', $deptIds)
+                        ->orWhere('created_by', $user->id)
+                        ->orWhere('assignee_id', $user->id);
                 });
             })
 
+            ->when($user->role === 'user', function ($q) use ($user) {
+                $q->where(function ($qq) use ($user) {
+                    $qq->where('assignee_id', $user->id)
+                        ->orWhere('created_by', $user->id);
+                });
+            })
 
-            // admin
             ->when($this->search !== '', function ($q) {
                 $s = '%' . $this->search . '%';
                 $q->where(fn($qq) => $qq
@@ -371,10 +372,6 @@ final class WorkOrderManageController extends Component
         $user = auth()->user();
 
         $query = Department::query()->orderBy('name');
-
-        if ($user->role === 'manager') {
-            $query->whereIn('id', $user->managedDepartments()->pluck('departments.id'));
-        }
 
         return $query->get(['id', 'name']);
     }

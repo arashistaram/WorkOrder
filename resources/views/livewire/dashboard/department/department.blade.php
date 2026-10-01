@@ -8,24 +8,26 @@
 
         <div class="page-head-actions d-flex align-items-center gap-2">
 
-            <button style="border: 1px solid #ccc;" wire:click="openAssign" class="btn btn--ghost" data-action="assign-users">
-                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                تخصیص کاربران به واحد
-            </button>
+            @if(auth()->user()->role !== 'user')
+                <button style="border: 1px solid #ccc;" wire:click="openAssign" class="btn btn--ghost" data-action="assign-users">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    تخصیص کاربران به واحد
+                </button>
 
-            <button wire:click="open" class="btn btn--primary" data-action="new-dep">
-                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
-                     stroke-linecap="round" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
-                واحد جدید
-            </button>
+                <button wire:click="open" class="btn btn--primary" data-action="new-dep">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
+                         stroke-linecap="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    واحد جدید
+                </button>
+            @endif
 
         </div>
     </div>

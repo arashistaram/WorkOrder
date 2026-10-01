@@ -78,6 +78,10 @@ class WorkOrderPolicy
             return true;
         }
 
+        if ($workOrder->created_by === $user->id) {
+            return false;
+        }
+
         if ($user->role === 'manager') {
             return $user->managedDepartments()
                 ->where('departments.id', $workOrder->department_id)
@@ -109,6 +113,29 @@ class WorkOrderPolicy
 
     public function manageChecklist(User $user, WorkOrder $workOrder): bool
     {
-        return $this->changeStatus($user, $workOrder);
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        if ($workOrder->created_by === $user->id) {
+            return false;
+        }
+
+        if ($workOrder->assignee_id === $user->id) {
+            return true;
+        }
+
+        if ($user->role === 'manager') {
+            return $user->managedDepartments()
+                ->where('departments.id', $workOrder->department_id)
+                ->exists();
+        }
+
+        return false;
+    }
+
+    public function updateActualHours(User $user, WorkOrder $workOrder): bool
+    {
+        return $this->manageChecklist($user, $workOrder);
     }
 }

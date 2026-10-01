@@ -6,15 +6,18 @@
             <h1 class="page-title">کاربران</h1>
         </div>
 
-        <div class="page-head-actions d-flex align-items-center gap-2">
-            <button wire:click="open" class="btn btn--primary" data-action="new-user">
-                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
-                     stroke-linecap="round" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
-                کاربر جدید
-            </button>
-        </div>
+        @if(auth()->user()->role !== 'user')
+            <div class="page-head-actions d-flex align-items-center gap-2">
+                <button wire:click="open" class="btn btn--primary" data-action="new-user">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
+                         stroke-linecap="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    کاربر جدید
+                </button>
+            </div>
+        @endif
+
     </div>
 
     {{-- ==================== Modal ==================== --}}
@@ -338,90 +341,92 @@
                                 {{ verta($user->created_at)->format('%d %B') }}
                             </td>
 
-                            <td class="cell-actions"
-                                x-data="{
-                                    open: false, x: 0, y: 0,
-                                    toggle() {
-                                        const r = $refs.trigger.getBoundingClientRect();
-                                        const menuW = 180, menuH = 200;
-                                        let left = r.right - menuW;
-                                        if (left < 8) left = 8;
-                                        let top = r.bottom + 6;
-                                        if (top + menuH > window.innerHeight) {
-                                            top = r.top - menuH - 6;
-                                            if (top < 8) top = 8;
+                            @if(auth()->user()->role !== 'user')
+
+                                <td class="cell-actions"
+                                    x-data="{
+                                        open: false, x: 0, y: 0,
+                                        toggle() {
+                                            const r = $refs.trigger.getBoundingClientRect();
+                                            const menuW = 180, menuH = 200;
+                                            let left = r.right - menuW;
+                                            if (left < 8) left = 8;
+                                            let top = r.bottom + 6;
+                                            if (top + menuH > window.innerHeight) {
+                                                top = r.top - menuH - 6;
+                                                if (top < 8) top = 8;
+                                            }
+                                            this.x = left; this.y = top;
+                                            this.open = !this.open;
                                         }
-                                        this.x = left; this.y = top;
-                                        this.open = !this.open;
-                                    }
-                                }">
+                                    }">
 
-                                <button x-ref="trigger"
-                                        class="icon-btn icon-btn--sm"
-                                        type="button"
-                                        @click.stop="toggle()"
-                                        :aria-expanded="open"
-                                        aria-haspopup="menu"
-                                        aria-label="اقدامات برای USR-{{ $user->id }}">
-                                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                        <circle cx="5" cy="12" r="1.4"/>
-                                        <circle cx="12" cy="12" r="1.4"/>
-                                        <circle cx="19" cy="12" r="1.4"/>
-                                    </svg>
-                                </button>
+                                    <button x-ref="trigger"
+                                            class="icon-btn icon-btn--sm"
+                                            type="button"
+                                            @click.stop="toggle()"
+                                            :aria-expanded="open"
+                                            aria-haspopup="menu"
+                                            aria-label="اقدامات برای USR-{{ $user->id }}">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <circle cx="5" cy="12" r="1.4"/>
+                                            <circle cx="12" cy="12" r="1.4"/>
+                                            <circle cx="19" cy="12" r="1.4"/>
+                                        </svg>
+                                    </button>
 
-                                <template x-teleport="body">
-                                    <div class="row-menu"
-                                         x-show="open"
-                                         x-cloak
-                                         x-transition.opacity.duration.120ms
-                                         :style="`top:${y}px; left:${x}px;`"
-                                         role="menu"
-                                         @click.outside="open = false"
-                                         @keydown.escape.window="open = false">
+                                    <template x-teleport="body">
+                                        <div class="row-menu"
+                                             x-show="open"
+                                             x-cloak
+                                             x-transition.opacity.duration.120ms
+                                             :style="`top:${y}px; left:${x}px;`"
+                                             role="menu"
+                                             @click.outside="open = false"
+                                             @keydown.escape.window="open = false">
 
-                                        <button class="row-menu__item"
-                                                type="button"
-                                                role="menuitem"
-                                                @click="open = false"
-                                                wire:click="open({{ $user->id }})">
-                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                                <path d="M12 20h9"/>
-                                                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
-                                            </svg>
-                                            ویرایش
-                                        </button>
+                                            <button class="row-menu__item"
+                                                    type="button"
+                                                    role="menuitem"
+                                                    @click="open = false"
+                                                    wire:click="open({{ $user->id }})">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path d="M12 20h9"/>
+                                                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
+                                                </svg>
+                                                ویرایش
+                                            </button>
 
-                                        <button class="row-menu__item"
-                                                type="button"
-                                                role="menuitem"
-                                                @click="open = false"
-                                                wire:click="changeStatus({{ $user->id }})">
-                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                                <path d="M5 12h14"/>
-                                            </svg>
-                                            {{ $user->is_active ? 'غیر فعال کردن' : 'فعال کردن' }}
-                                        </button>
+                                            <button class="row-menu__item"
+                                                    type="button"
+                                                    role="menuitem"
+                                                    @click="open = false"
+                                                    wire:click="changeStatus({{ $user->id }})">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path d="M5 12h14"/>
+                                                </svg>
+                                                {{ $user->is_active ? 'غیر فعال کردن' : 'فعال کردن' }}
+                                            </button>
 
-                                        <div class="row-menu__divider"></div>
+                                            <div class="row-menu__divider"></div>
 
-                                        <button class="row-menu__item row-menu__item--danger"
-                                                type="button"
-                                                role="menuitem"
-                                                @click="open = false"
-                                                wire:click="delete({{ $user->id }})"
-                                                wire:confirm="از حذف این کاربر مطمئن هستید؟">
-                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                                <path d="M3 6h18"/>
-                                                <path d="M8 6V4h8v2"/>
-                                                <path d="M6 6l1 14h10l1-14"/>
-                                            </svg>
-                                            حذف
-                                        </button>
-                                    </div>
-                                </template>
-                            </td>
-
+                                            <button class="row-menu__item row-menu__item--danger"
+                                                    type="button"
+                                                    role="menuitem"
+                                                    @click="open = false"
+                                                    wire:click="delete({{ $user->id }})"
+                                                    wire:confirm="از حذف این کاربر مطمئن هستید؟">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path d="M3 6h18"/>
+                                                    <path d="M8 6V4h8v2"/>
+                                                    <path d="M6 6l1 14h10l1-14"/>
+                                                </svg>
+                                                حذف
+                                            </button>
+                                        </div>
+                                    </template>
+                                </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>

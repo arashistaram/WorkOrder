@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -48,6 +49,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Department::class, 'department_users')
             ->wherePivot('role', 'supervisor')
             ->wherePivot('is_active', true);
+    }
+
+    public function outputAccount(): HasOne
+    {
+        return $this->hasOne(OutputMessengerAccount::class, 'user_id');
     }
 
     public function createdWorkOrders()

@@ -1,4 +1,7 @@
-@php $wo = $this->workOrder; @endphp
+@php
+    $wo  = $this->workOrder;
+    $can = $this->permissions;
+@endphp
 
 <div id="view" style="padding: 50px 50px">
 
@@ -34,26 +37,49 @@
             </div>
         </div>
 
+        {{-- ⬇️ دکمه‌های Action --}}
         <div class="page-head-actions d-flex align-items-center gap-2">
             <a href="{{ route('work-orders') }}" wire:navigate.hover class="btn btn--ghost">
                 بازگشت
             </a>
 
-            <button wire:click="openAssignModal" class="btn btn--primary">
-                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                </svg>
-                تخصیص کاربر
-            </button>
-            <button wire:click="openStatusModal" class="btn">
-                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-                تغییر وضعیت
-            </button>
-        </div>
+            {{-- ✅ دکمه تخصیص --}}
+            @if($can['assign'])
+                <button wire:click="openAssignModal" class="btn btn--primary">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                    </svg>
+                    {{ $wo->assignee_id ? 'تغییر مسئول' : 'تخصیص کاربر' }}
+                </button>
+            @else
+                <button class="btn btn--primary" disabled
+                        title="شما اجازه تخصیص این سفارش را ندارید">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                    </svg>
+                    تخصیص کاربر
+                </button>
+            @endif
 
+            {{-- ✅ دکمه تغییر وضعیت --}}
+            @if($can['changeStatus'])
+                <button wire:click="openStatusModal" class="btn">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                    تغییر وضعیت
+                </button>
+            @else
+                <button class="btn" disabled title="شما اجازه تغییر وضعیت این سفارش را ندارید">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                    تغییر وضعیت
+                </button>
+            @endif
+        </div>
     </div>
 
     {{-- ==================== Grid Layout ==================== --}}
@@ -72,7 +98,7 @@
                 </div>
             </div>
 
-            {{-- چک‌لیست --}}
+            {{-- ✅ چک‌لیست --}}
             <div class="card">
                 <div class="card__head">
                     <h3>
@@ -80,38 +106,62 @@
                         <span class="badge badge--info" style="margin-inline-start:8px">
                             {{ $wo->progress }}%
                         </span>
+
+                        @unless($can['manageChecklist'])
+                            <span class="badge badge--warning"
+                                  style="margin-inline-start:8px;font-size:10px">
+                                فقط خواندنی
+                            </span>
+                        @endunless
                     </h3>
                 </div>
                 <div class="card__body">
 
-                    {{-- افزودن آیتم --}}
-                    <div class="d-flex gap-2" style="margin-bottom:12px">
-                        <div class="global-search" style="flex:1">
-                            <input type="text"
-                                   wire:model="newChecklistTitle"
-                                   wire:keydown.enter="addChecklistItem"
-                                   placeholder="آیتم جدید...">
+                    {{-- پیام راهنما برای سازنده --}}
+                    @unless($can['manageChecklist'])
+                        <div style="margin-bottom:12px;padding:10px;background:#eff6ff;
+                                    border-inline-start:3px solid #3b82f6;border-radius:8px;
+                                    font-size:13px;color:#1e40af">
+                            مدیریت چک‌لیست تنها توسط مسئول انجام سفارش یا مدیر واحد امکان‌پذیر است.
                         </div>
-                        <button type="button"
-                                class="btn btn--primary btn--sm"
-                                wire:click="addChecklistItem">
-                            افزودن
-                        </button>
-                    </div>
+                    @endunless
 
-                    @error('newChecklistTitle')
-                    <span class="field-error" style="display:block;margin-bottom:8px">{{ $message }}</span>
-                    @enderror
+                    {{-- فرم افزودن — فقط مجاز --}}
+                    @if($can['manageChecklist'])
+                        <div class="d-flex gap-2" style="margin-bottom:12px">
+                            <div class="global-search" style="flex:1">
+                                <input type="text"
+                                       wire:model="newChecklistTitle"
+                                       wire:keydown.enter="addChecklistItem"
+                                       placeholder="آیتم جدید...">
+                            </div>
+                            <button type="button"
+                                    class="btn btn--primary btn--sm"
+                                    wire:click="addChecklistItem">
+                                افزودن
+                            </button>
+                        </div>
+
+                        @error('newChecklistTitle')
+                        <span class="field-error" style="display:block;margin-bottom:8px">{{ $message }}</span>
+                        @enderror
+                    @endif
 
                     {{-- آیتم‌ها --}}
                     @forelse($wo->checklistItems as $item)
                         <div class="checklist-item {{ $item->is_done ? 'is-done' : '' }}"
                              wire:key="chk-{{ $item->id }}">
 
-                            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;min-width:0">
+                            <label style="display:flex;align-items:center;gap:10px;
+                                          cursor:{{ $can['manageChecklist'] ? 'pointer' : 'default' }};
+                                          flex:1;min-width:0">
                                 <input type="checkbox"
                                        class="checkbox"
-                                       wire:click="toggleChecklistItem({{ $item->id }})"
+                                       @if($can['manageChecklist'])
+                                           wire:click="toggleChecklistItem({{ $item->id }})"
+                                       @else
+                                           disabled
+                                    @endif
                                     @checked($item->is_done)>
                                 <span style="flex:1">{{ $item->title }}</span>
                             </label>
@@ -123,16 +173,19 @@
                                 </small>
                             @endif
 
-                            <button type="button"
-                                    class="icon-btn icon-btn--sm"
-                                    wire:click="removeChecklistItem({{ $item->id }})"
-                                    wire:confirm="حذف این آیتم؟"
-                                    style="color:#dc2626">
-                                <svg class="icon" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                    <path d="M18 6 6 18M6 6l12 12"/>
-                                </svg>
-                            </button>
+                            {{-- ✅ دکمه حذف — فقط مجاز --}}
+                            @if($can['manageChecklist'])
+                                <button type="button"
+                                        class="icon-btn icon-btn--sm"
+                                        wire:click="removeChecklistItem({{ $item->id }})"
+                                        wire:confirm="حذف این آیتم؟"
+                                        style="color:#dc2626">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M18 6 6 18M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            @endif
                         </div>
                     @empty
                         <div style="text-align:center;padding:20px;color:var(--color-text-2)">
@@ -143,7 +196,7 @@
                 </div>
             </div>
 
-            {{-- تاریخچه وضعیت --}}
+            {{-- تاریخچه وضعیت (بدون تغییر — همه می‌بینن) --}}
             <div class="card">
                 <div class="card__head"><h3>تاریخچه وضعیت</h3></div>
                 <div class="card__body">
@@ -179,7 +232,7 @@
                 </div>
             </div>
 
-            {{-- تاریخچه تخصیص --}}
+            {{-- تاریخچه تخصیص (بدون تغییر) --}}
             <div class="card">
                 <div class="card__head"><h3>تاریخچه تخصیص</h3></div>
                 <div class="card__body">
@@ -201,7 +254,9 @@
                             <div style="text-align:left;font-size:12px;color:var(--color-text-2)">
                                 <div>{{ verta($a->assigned_at)->format('%d %B - H:i') }}</div>
                                 @if($a->unassigned_at)
-                                    <div style="color:#dc2626">پایان: {{ verta($a->unassigned_at)->format('%d %B - H:i') }}</div>
+                                    <div style="color:#dc2626">
+                                        پایان: {{ verta($a->unassigned_at)->format('%d %B - H:i') }}
+                                    </div>
                                 @else
                                     <span class="badge badge--success" style="font-size:10px">فعال</span>
                                 @endif
@@ -210,7 +265,8 @@
                         </div>
 
                         @if($a->note)
-                            <div style="margin:4px 0 12px 40px;padding:8px;background:#f9fafb;border-radius:6px;font-size:13px">
+                            <div style="margin:4px 0 12px 40px;padding:8px;background:#f9fafb;
+                                        border-radius:6px;font-size:13px">
                                 «{{ $a->note }}»
                             </div>
                         @endif
@@ -227,7 +283,7 @@
         {{-- ============ ستون کناری ============ --}}
         <div class="wo-detail-side">
 
-            {{-- اطلاعات کلی --}}
+            {{-- اطلاعات کلی (بدون تغییر) --}}
             <div class="card">
                 <div class="card__head"><h3>اطلاعات</h3></div>
                 <div class="card__body">
@@ -247,31 +303,46 @@
                         <dt>سررسید</dt>
                         <dd>{{ $wo->due_date ? verta($wo->due_date)->format('%d %B %Y') : '—' }}</dd>
 
-                        <dt>شروع</dt>
-                        <dd>{{ $wo->started_at ? verta($wo->started_at)->format('%d %B - H:i') : '—' }}</dd>
+{{--                        <dt>شروع</dt>--}}
+{{--                        <dd>{{ $wo->started_at ? verta($wo->started_at)->format('%d %B - H:i') : '—' }}</dd>--}}
 
                         <dt>پایان</dt>
                         <dd>{{ $wo->completed_at ? verta($wo->completed_at)->format('%d %B - H:i') : '—' }}</dd>
 
-                        <dt>ساعت تخمینی</dt>
-                        <dd>{{ $wo->estimated_hours ? $wo->estimated_hours . ' ساعت' : '—' }}</dd>
+{{--                        <dt>ساعت تخمینی</dt>--}}
+{{--                        <dd>{{ $wo->estimated_hours ? $wo->estimated_hours . ' ساعت' : '—' }}</dd>--}}
                     </dl>
                 </div>
             </div>
 
-            {{-- ساعات واقعی --}}
+            {{-- ✅ ساعات واقعی --}}
             <div class="card">
                 <div class="card__head"><h3>ساعات واقعی</h3></div>
                 <div class="card__body">
-                    <div class="d-flex gap-2">
-                        <div class="global-search" style="flex:1">
-                            <input type="number" step="0.25" min="0" dir="ltr"
-                                   wire:model="actualHours" placeholder="0">
+                    @if($can['updateActualHours'])
+                        <div class="d-flex gap-2">
+                            <div class="global-search" style="flex:1">
+                                <input type="number" step="0.25" min="0" dir="ltr"
+                                       wire:model="actualHours" placeholder="0">
+                            </div>
+                            <button type="button" class="btn btn--primary btn--sm"
+                                    wire:click="saveActualHours">ذخیره</button>
                         </div>
-                        <button type="button" class="btn btn--primary btn--sm"
-                                wire:click="saveActualHours">ذخیره</button>
-                    </div>
-                    @error('actualHours') <span class="field-error">{{ $message }}</span> @enderror
+                        @error('actualHours') <span class="field-error">{{ $message }}</span> @enderror
+                    @else
+                        <div style="padding:12px;background:#f9fafb;border-radius:8px;text-align:center">
+                            <div style="font-size:24px;font-weight:700;color:#1f2937">
+                                {{ $wo->actual_hours ?? '—' }}
+                                @if($wo->actual_hours)
+                                    <span style="font-size:14px;color:#6b7280">ساعت</span>
+                                @endif
+                            </div>
+                            <small style="color:var(--color-text-2);font-size:12px;
+                                          display:block;margin-top:6px">
+                                ثبت ساعات واقعی تنها توسط مسئول انجام امکان‌پذیر است.
+                            </small>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -291,23 +362,32 @@
                     <div class="modal-body">
                         <div class="form-grid">
 
-                            <div class="field @error('assignToUserId') has-error @enderror" style="grid-column: span 2">
+                            {{-- کاربر مسئول — فقط اعضای واحد فعلی --}}
+                            <div class="field @error('assignToUserId') has-error @enderror"
+                                 style="grid-column: span 2">
                                 <label>کاربر مسئول <span class="req">*</span></label>
                                 <div class="global-search" style="width:100%">
                                     <select wire:model="assignToUserId">
                                         <option value="">انتخاب کنید</option>
-                                        @foreach($this->usersList as $u)
-                                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                        @foreach($this->departmentMembers as $u)
+                                            <option value="{{ $u->id }}">
+                                                {{ $u->name ?? $u->username }}
+                                            </option>
                                         @endforeach
                                     </select>
                                 </div>
+                                <small style="color:var(--color-text-2);font-size:11px">
+                                    فقط اعضای واحد مقصد قابل انتخاب هستند
+                                </small>
                                 @error('assignToUserId') <span class="field-error">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="field @error('assignToDeptId') has-error @enderror" style="grid-column: span 2">
+                            {{-- واحد مقصد --}}
+                            <div class="field @error('assignToDeptId') has-error @enderror"
+                                 style="grid-column: span 2">
                                 <label>واحد مقصد <span class="req">*</span></label>
                                 <div class="global-search" style="width:100%">
-                                    <select wire:model="assignToDeptId">
+                                    <select wire:model.live="assignToDeptId">
                                         <option value="">انتخاب کنید</option>
                                         @foreach($this->departmentsList as $d)
                                             <option value="{{ $d->id }}">{{ $d->name }}</option>
@@ -317,6 +397,7 @@
                                 @error('assignToDeptId') <span class="field-error">{{ $message }}</span> @enderror
                             </div>
 
+                            {{-- یادداشت --}}
                             <div class="field" style="grid-column: span 2">
                                 <label>یادداشت (اختیاری)</label>
                                 <div class="global-search" style="width:100%">
@@ -351,12 +432,13 @@
                     <div class="modal-body">
                         <div class="form-grid">
 
-                            <div class="field @error('newStatusId') has-error @enderror" style="grid-column: span 2">
+                            <div class="field @error('newStatusId') has-error @enderror"
+                                 style="grid-column: span 2">
                                 <label>وضعیت جدید <span class="req">*</span></label>
                                 <div class="global-search" style="width:100%">
                                     <select wire:model="newStatusId">
                                         <option value="">انتخاب کنید</option>
-                                        @foreach($this->statusesList as $s)
+                                        @foreach($this->statusesList() as $s)
                                             <option value="{{ $s->id }}">{{ $s->label }}</option>
                                         @endforeach
                                     </select>

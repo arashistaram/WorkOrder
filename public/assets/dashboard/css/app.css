@@ -963,3 +963,133 @@ table.table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5p
 .toolbar-filters.d-flex.align-items-center.flex-wrap.gap-2{
     width: 55%;
 }
+
+.checkbox:disabled {
+    cursor: not-allowed;
+    opacity: .5;
+}
+
+.user-combobox {
+    position: relative;
+    width: 100%;
+}
+
+/* حالت انتخاب‌شده */
+.user-combobox__selected {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    min-height: 42px;
+}
+
+.user-combobox__selected-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-combobox__clear {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: #dc2626;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background .12s;
+}
+.user-combobox__clear:hover {
+    background: #fee2e2;
+}
+
+/* Dropdown */
+.user-combobox__dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 60;
+    max-height: 340px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    padding: 4px;
+    animation: userDropdownIn .12s ease-out;
+}
+
+@keyframes userDropdownIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* آیتم‌ها */
+.user-combobox__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: right;
+    transition: background .12s;
+}
+.user-combobox__item:hover {
+    background: #eff6ff;
+}
+
+.user-combobox__info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.user-combobox__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-combobox__meta {
+    font-size: 11px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* حالت‌های خالی و فوتر */
+.user-combobox__empty,
+.user-combobox__footer {
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.user-combobox__footer {
+    border-top: 1px solid #f3f4f6;
+    background: #fafafa;
+    color: #6b7280;
+    border-radius: 0 0 8px 8px;
+}

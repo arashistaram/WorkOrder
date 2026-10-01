@@ -1,424 +1,292 @@
 <div>
     <div id="view" style="padding: 50px 50px">
 
+        {{-- ==================== Page Head ==================== --}}
         <div class="page-head">
             <div>
                 <h1 class="page-title">نمای کلی عملیات</h1>
-                <p class="page-sub">34 دستورکار · 5 معوق · 2 سررسید امروز</p>
+                <p class="page-sub">{{ $this->subtitle }}</p>
             </div>
             <div class="page-head-actions">
-                <button class="btn" data-action="toast" data-toast="خروجی گزارش در صف قرار گرفت. پس از آماده شدن ایمیل دریافت خواهید کرد.">
-                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>
-                    خروجی
-                </button>
-                <button class="btn" data-action="nav" data-view="list">
-                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+                <a href="{{ route('work-orders') }}" wire:navigate.hover class="btn">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>
+                    </svg>
                     مشاهده همه دستورکارها
-                </button>
+                </a>
             </div>
         </div>
 
-        <!-- ==================== KPI Grid ==================== -->
+        {{-- ==================== KPI Grid ==================== --}}
         <section class="kpi-grid" aria-label="شاخص‌های کلیدی">
 
-            <!-- KPI 1: دستورکارهای باز -->
+            {{-- KPI 1: دستورکارهای باز --}}
             <article class="kpi">
                 <div class="kpi-top">
                     <span class="kpi-label">دستورکارهای باز</span>
                     <span class="kpi-icon">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>
-        </span>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
+                            <path d="M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>
+                        </svg>
+                    </span>
                 </div>
-                <div class="kpi-value">8</div>
+                <div class="kpi-value">{{ $this->openCount }}</div>
                 <div class="kpi-foot">
                     <div class="kpi-meta">
-          <span class="delta delta--up">
-            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
-            +12.5%
-          </span>
+                        @php $d = $this->openDelta; @endphp
+                        <span class="delta {{ $d >= 0 ? 'delta--up' : 'delta--down' }}">
+                            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                @if($d >= 0)
+                                    <path d="M12 19V5M6 11l6-6 6 6"/>
+                                @else
+                                    <path d="M12 5v14M18 13l-6 6-6-6"/>
+                                @endif
+                            </svg>
+                            {{ $d >= 0 ? '+' : '' }}{{ $d }}%
+                        </span>
                         <span class="kpi-sub">نسبت به ۳۰ روز گذشته</span>
                     </div>
-                    <svg class="spark" viewBox="0 0 56 24" aria-hidden="true">
-                        <rect x="0"  y="11" width="5" height="11" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="7"  y="8"  width="5" height="14" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="14" y="10" width="5" height="12" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="21" y="6"  width="5" height="16" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="28" y="7"  width="5" height="15" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="35" y="3"  width="5" height="19" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="42" y="4"  width="5" height="18" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="49" y="11" width="5" height="11" rx="1" fill="currentColor" opacity="1"/>
-                    </svg>
                 </div>
             </article>
 
-            <!-- KPI 2: در حال انجام -->
+            {{-- KPI 2: در حال انجام --}}
             <article class="kpi">
                 <div class="kpi-top">
                     <span class="kpi-label">در حال انجام</span>
                     <span class="kpi-icon">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7.5V12l3 1.8"/><path d="M18 3v5h5"/></svg>
-        </span>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3a9 9 0 1 0 9 9"/>
+                            <path d="M12 7.5V12l3 1.8"/>
+                            <path d="M18 3v5h5"/>
+                        </svg>
+                    </span>
                 </div>
-                <div class="kpi-value">11</div>
+                <div class="kpi-value">{{ $this->inProgressCount }}</div>
                 <div class="kpi-foot">
                     <div class="kpi-meta">
-          <span class="delta delta--up">
-            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
-            +4.1%
-          </span>
-                        <span class="kpi-sub">نسبت به ۳۰ روز گذشته</span>
+                        <span class="kpi-sub">در حال انجام توسط تیم</span>
                     </div>
-                    <svg class="spark" viewBox="0 0 56 24" aria-hidden="true">
-                        <rect x="0"  y="12" width="5" height="10" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="7"  y="10" width="5" height="12" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="14" y="10" width="5" height="12" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="21" y="6"  width="5" height="16" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="28" y="8"  width="5" height="14" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="35" y="5"  width="5" height="17" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="42" y="3"  width="5" height="19" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="49" y="3"  width="5" height="19" rx="1" fill="currentColor" opacity="1"/>
-                    </svg>
                 </div>
             </article>
 
-            <!-- KPI 3: سررسید امروز -->
+            {{-- KPI 3: سررسید امروز --}}
             <article class="kpi">
                 <div class="kpi-top">
                     <span class="kpi-label">سررسید امروز</span>
                     <span class="kpi-icon">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-        </span>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="5" width="18" height="16" rx="2"/>
+                            <path d="M3 10h18M8 3v4M16 3v4"/>
+                        </svg>
+                    </span>
                 </div>
-                <div class="kpi-value">2</div>
+                <div class="kpi-value">{{ $this->dueTodayCount }}</div>
                 <div class="kpi-foot">
                     <div class="kpi-meta">
-          <span class="delta delta--down">
-            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M18 13l-6 6-6-6"/></svg>
-            5 معوق
-          </span>
+                        <span class="delta delta--down">
+                            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                                 stroke-linejoin="round">
+                                <path d="M12 5v14M18 13l-6 6-6-6"/>
+                            </svg>
+                            {{ $this->overdueCount }} معوق
+                        </span>
                         <span class="kpi-sub">نیازمند زمان‌بندی</span>
                     </div>
-                    <svg class="spark" viewBox="0 0 56 24" aria-hidden="true">
-                        <rect x="0"  y="11" width="5" height="11" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="7"  y="14" width="5" height="8"  rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="14" y="7"  width="5" height="15" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="21" y="11" width="5" height="11" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="28" y="3"  width="5" height="19" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="35" y="7"  width="5" height="15" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="42" y="14" width="5" height="8"  rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="49" y="14" width="5" height="8"  rx="1" fill="currentColor" opacity="1"/>
-                    </svg>
                 </div>
             </article>
 
-            <!-- KPI 4: تکمیل‌شده این ماه -->
+            {{-- KPI 4: تکمیل‌شده این ماه --}}
             <article class="kpi">
                 <div class="kpi-top">
                     <span class="kpi-label">تکمیل‌شده این ماه</span>
                     <span class="kpi-icon">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.4 12.4 2.4 2.4 4.8-5"/></svg>
-        </span>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="m8.4 12.4 2.4 2.4 4.8-5"/>
+                        </svg>
+                    </span>
                 </div>
-                <div class="kpi-value">14</div>
+                <div class="kpi-value">{{ $this->completedThisMonthCount }}</div>
                 <div class="kpi-foot">
                     <div class="kpi-meta">
-          <span class="delta delta--up">
-            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
-            +8.3%
-          </span>
-                        <span class="kpi-sub">نسبت به ۳۰ روز گذشته</span>
+                        <span class="kpi-sub">در ماه جاری</span>
                     </div>
-                    <svg class="spark" viewBox="0 0 56 24" aria-hidden="true">
-                        <rect x="0"  y="10" width="5" height="12" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="7"  y="7"  width="5" height="15" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="14" y="8"  width="5" height="14" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="21" y="6"  width="5" height="16" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="28" y="4"  width="5" height="18" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="35" y="6"  width="5" height="16" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="42" y="3"  width="5" height="19" rx="1" fill="currentColor" opacity="0.26"/>
-                        <rect x="49" y="3"  width="5" height="19" rx="1" fill="currentColor" opacity="1"/>
-                    </svg>
                 </div>
             </article>
 
         </section>
 
-        <!-- ==================== Dash Grid — Attention + Workload ==================== -->
+        {{-- ==================== Dash Grid — Attention + Workload ==================== --}}
         <div class="dash-grid">
 
-            <!-- نیازمند توجه -->
+            {{-- نیازمند توجه --}}
             <section class="card">
                 <header class="card-head">
                     <h2>نیازمند توجه</h2>
-                    <span class="card-sub">معوق و سررسید تا ۲۴ ساعت آینده</span>
+                    <span class="card-sub">معوق و سررسید تا امروز</span>
                 </header>
                 <div class="card-body card-body--flush">
 
-                    <div class="attention-row" data-action="open-wo" data-id="WO-10482">
-                        <div class="attention-main">
-                            <div class="attention-title">کالیبراسیون سنسورهای فشار — خط ۴</div>
-                            <div class="attention-meta">
-                                <span class="mono">WO-10482</span>
-                                <span class="dot"></span><span>صنایع پارس</span>
-                                <span class="dot"></span><span>الکس مورگان</span>
-                            </div>
-                        </div>
-                        <span class="badge badge--warning">سررسید امروز</span>
-                        <span class="badge badge--primary"><span class="badge__dot"></span>در حال انجام</span>
-                    </div>
+                    @forelse($this->attentionItems as $wo)
+                        <a href="{{ route('work-orders.detail', $wo->id) }}"
+                           wire:navigate.hover
+                           class="attention-row"
+                           wire:key="attn-{{ $wo->id }}">
 
-                    <div class="attention-row" data-action="open-wo" data-id="WO-10478">
-                        <div class="attention-main">
-                            <div class="attention-title">تعمیر اضطراری نشتی — چیلر ۲</div>
-                            <div class="attention-meta">
-                                <span class="mono">WO-10478</span>
-                                <span class="dot"></span><span>لجستیک آریا</span>
-                                <span class="dot"></span><span>سارا چن</span>
+                            <div class="attention-main">
+                                <div class="attention-title">{{ $wo->title }}</div>
+                                <div class="attention-meta">
+                                    <span class="mono">{{ $wo->code }}</span>
+                                    <span class="dot"></span>
+                                    <span>{{ $wo->department?->name ?? '—' }}</span>
+                                    <span class="dot"></span>
+                                    <span>{{ $wo->assignee?->name ?? 'بدون مسئول' }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <span class="badge badge--danger">3 روز معوق</span>
-                        <span class="badge badge--warning"><span class="badge__dot"></span>متوقف</span>
-                    </div>
 
-                    <div class="attention-row" data-action="open-wo" data-id="WO-10476">
-                        <div class="attention-main">
-                            <div class="attention-title">تعویض درایو معیوب موتور نوار نقاله</div>
-                            <div class="attention-meta">
-                                <span class="mono">WO-10476</span>
-                                <span class="dot"></span><span>تولیدی البرز</span>
-                                <span class="dot"></span><span>دیگو رامیرز</span>
-                            </div>
-                        </div>
-                        <span class="badge badge--neutral">سررسید فردا</span>
-                        <span class="badge badge--info"><span class="badge__dot"></span>باز</span>
-                    </div>
+                            @php
+                                $daysLeft = $wo->due_date ? (int) today()->diffInDays($wo->due_date, false) : null;
+                            @endphp
 
-                    <div class="attention-row" data-action="open-wo" data-id="WO-10471">
-                        <div class="attention-main">
-                            <div class="attention-title">سرویس ژنراتور پشتیبان</div>
-                            <div class="attention-meta">
-                                <span class="mono">WO-10471</span>
-                                <span class="dot"></span><span>سلامت مهر</span>
-                                <span class="dot"></span><span>پریا نایر</span>
-                            </div>
-                        </div>
-                        <span class="badge badge--warning">سررسید امروز</span>
-                        <span class="badge badge--primary"><span class="badge__dot"></span>در حال انجام</span>
-                    </div>
+                            @if($daysLeft !== null && $daysLeft < 0)
+                                <span class="badge badge--danger">{{ abs($daysLeft) }} روز معوق</span>
+                            @elseif($daysLeft === 0)
+                                <span class="badge badge--warning">سررسید امروز</span>
+                            @else
+                                <span class="badge badge--neutral">سررسید فردا</span>
+                            @endif
 
-                    <div class="attention-row" data-action="open-wo" data-id="WO-10468">
-                        <div class="attention-main">
-                            <div class="attention-title">بازرسی فصلی سیستم اطفای حریق</div>
-                            <div class="attention-meta">
-                                <span class="mono">WO-10468</span>
-                                <span class="dot"></span><span>گروه رفاه</span>
-                                <span class="dot"></span><span>تام بکر</span>
-                            </div>
+                            @if($wo->status)
+                                <span class="badge {{ $wo->status->badge_class ?? 'badge--info' }}">
+                                    <span class="badge__dot"></span>{{ $wo->status->label }}
+                                </span>
+                            @endif
+                        </a>
+                    @empty
+                        <div style="padding:32px;text-align:center;color:var(--color-text-2);font-size:13px">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.5" style="width:40px;height:40px;opacity:.3">
+                                <path d="M20 6 9 17l-5-5"/>
+                            </svg>
+                            <p>هیچ موردی نیازمند توجه نیست 🎉</p>
                         </div>
-                        <span class="badge badge--danger">2 روز معوق</span>
-                        <span class="badge badge--info"><span class="badge__dot"></span>باز</span>
-                    </div>
-
-                    <div class="attention-row" data-action="open-wo" data-id="WO-10465">
-                        <div class="attention-main">
-                            <div class="attention-title">نصب فیلترهای جدید هواساز</div>
-                            <div class="attention-meta">
-                                <span class="mono">WO-10465</span>
-                                <span class="dot"></span><span>انرژی دماوند</span>
-                                <span class="dot"></span><span>لنا فیشر</span>
-                            </div>
-                        </div>
-                        <span class="badge badge--neutral">سررسید فردا</span>
-                        <span class="badge badge--primary"><span class="badge__dot"></span>در حال انجام</span>
-                    </div>
+                    @endforelse
 
                 </div>
             </section>
 
-            <!-- بار کاری فعال -->
+            {{-- بار کاری فعال --}}
             <section class="card">
                 <header class="card-head">
                     <h2>بار کاری فعال</h2>
-                    <span class="card-sub">موارد باز به تفکیک تکنسین</span>
+                    <span class="card-sub">موارد باز به تفکیک مسئول</span>
                 </header>
                 <div class="workload">
 
-                    <div class="workload-row">
-          <span class="avatar-stack">
-            <span class="avatar avatar--blue" aria-hidden="true">ا.م</span>
-            <span class="name">الکس مورگان</span>
-          </span>
-                        <span class="workload-bar"><span style="width:100%"></span></span>
-                        <span class="workload-count">5</span>
-                    </div>
-
-                    <div class="workload-row">
-          <span class="avatar-stack">
-            <span class="avatar avatar--green" aria-hidden="true">س.چ</span>
-            <span class="name">سارا چن</span>
-          </span>
-                        <span class="workload-bar"><span style="width:80%"></span></span>
-                        <span class="workload-count">4</span>
-                    </div>
-
-                    <div class="workload-row">
-          <span class="avatar-stack">
-            <span class="avatar avatar--amber" aria-hidden="true">د.ر</span>
-            <span class="name">دیگو رامیرز</span>
-          </span>
-                        <span class="workload-bar"><span style="width:60%"></span></span>
-                        <span class="workload-count">3</span>
-                    </div>
-
-                    <div class="workload-row">
-          <span class="avatar-stack">
-            <span class="avatar avatar--violet" aria-hidden="true">پ.ن</span>
-            <span class="name">پریا نایر</span>
-          </span>
-                        <span class="workload-bar"><span style="width:60%"></span></span>
-                        <span class="workload-count">3</span>
-                    </div>
-
-                    <div class="workload-row">
-          <span class="avatar-stack">
-            <span class="avatar avatar--slate" aria-hidden="true">ت.ب</span>
-            <span class="name">تام بکر</span>
-          </span>
-                        <span class="workload-bar"><span style="width:40%"></span></span>
-                        <span class="workload-count">2</span>
-                    </div>
-
-                    <div class="workload-row">
-          <span class="avatar-stack">
-            <span class="avatar avatar--rose" aria-hidden="true">ل.ف</span>
-            <span class="name">لنا فیشر</span>
-          </span>
-                        <span class="workload-bar"><span style="width:40%"></span></span>
-                        <span class="workload-count">2</span>
-                    </div>
-
-                    <div class="workload-row">
-          <span class="avatar-stack">
-            <span class="avatar avatar--teal" aria-hidden="true">م.و</span>
-            <span class="name">مارکوس وب</span>
-          </span>
-                        <span class="workload-bar"><span style="width:20%"></span></span>
-                        <span class="workload-count">1</span>
-                    </div>
+                    @forelse($this->workload as $row)
+                        <div class="workload-row" wire:key="wl-{{ $row['user']->id }}">
+                            <span class="avatar-stack">
+                                <span class="avatar avatar--blue">
+                                    {{ getInitials($row['user']->name, '') }}
+                                </span>
+                                <span class="name">{{ $row['user']->name }}</span>
+                            </span>
+                            <span class="workload-bar">
+                                <span style="width:{{ $row['percentage'] }}%"></span>
+                            </span>
+                            <span class="workload-count">{{ $row['count'] }}</span>
+                        </div>
+                    @empty
+                        <div style="padding:32px;text-align:center;color:var(--color-text-2);font-size:13px">
+                            هیچ سفارش بازی وجود ندارد.
+                        </div>
+                    @endforelse
 
                 </div>
             </section>
 
         </div>
 
-        <!-- ==================== Dash Grid Even — Activity + Status ==================== -->
+        {{-- ==================== Dash Grid Even — Activity + Status ==================== --}}
         <div class="dash-grid dash-grid--even">
 
-            <!-- فعالیت‌های اخیر -->
+            {{-- فعالیت‌های اخیر --}}
             <section class="card">
                 <header class="card-head">
                     <h2>فعالیت‌های اخیر</h2>
-                    <span class="card-sub">در همه دستورکارها</span>
+                    <span class="card-sub">آخرین تغییرات وضعیت</span>
                 </header>
                 <ul class="timeline">
 
-                    <li class="tl-item">
-                        <span class="tl-avatar"><span class="avatar avatar--sm avatar--blue" aria-hidden="true">ا.م</span></span>
-                        <div class="tl-body">
-                            <div class="tl-text"><strong>الکس مورگان</strong> وضعیت را به «در حال انجام» تغییر داد روی <span class="mono">WO-10482</span></div>
-                            <div class="tl-time">همین الان</div>
-                        </div>
-                    </li>
-
-                    <li class="tl-item">
-                        <span class="tl-avatar"><span class="avatar avatar--sm avatar--green" aria-hidden="true">س.چ</span></span>
-                        <div class="tl-body">
-                            <div class="tl-text"><strong>سارا چن</strong> یک پیوست اضافه کرد روی <span class="mono">WO-10481</span></div>
-                            <div class="tl-meta">maintenance-report.pdf</div>
-                            <div class="tl-time">1 ساعت پیش</div>
-                        </div>
-                    </li>
-
-                    <li class="tl-item">
-                        <span class="tl-avatar"><span class="avatar avatar--sm avatar--amber" aria-hidden="true">د.ر</span></span>
-                        <div class="tl-body">
-                            <div class="tl-text"><strong>دیگو رامیرز</strong> یک آیتم چک‌لیست را تکمیل کرد روی <span class="mono">WO-10479</span></div>
-                            <div class="tl-meta">بازرسی دستگاه و ثبت یافته‌ها</div>
-                            <div class="tl-time">6 ساعت پیش</div>
-                        </div>
-                    </li>
-
-                    <li class="tl-item">
-                        <span class="tl-avatar"><span class="avatar avatar--sm avatar--violet" aria-hidden="true">پ.ن</span></span>
-                        <div class="tl-body">
-                            <div class="tl-text"><strong>پریا نایر</strong> یک نظر اضافه کرد روی <span class="mono">WO-10477</span></div>
-                            <div class="tl-meta">قطعات به سایت رسید. زمان‌بندی برای صبح پنجشنبه.</div>
-                            <div class="tl-time">1 روز پیش</div>
-                        </div>
-                    </li>
-
-                    <li class="tl-item">
-                        <span class="tl-avatar"><span class="avatar avatar--sm avatar--slate" aria-hidden="true">ت.ب</span></span>
-                        <div class="tl-body">
-                            <div class="tl-text"><strong>تام بکر</strong> وضعیت را به «متوقف» تغییر داد روی <span class="mono">WO-10475</span></div>
-                            <div class="tl-time">2 روز پیش</div>
-                        </div>
-                    </li>
-
-                    <li class="tl-item">
-                        <span class="tl-avatar"><span class="avatar avatar--sm avatar--rose" aria-hidden="true">ل.ف</span></span>
-                        <div class="tl-body">
-                            <div class="tl-text"><strong>لنا فیشر</strong> وضعیت را به «تکمیل‌شده» تغییر داد روی <span class="mono">WO-10472</span></div>
-                            <div class="tl-time">3 روز پیش</div>
-                        </div>
-                    </li>
+                    @forelse($this->recentActivity as $h)
+                        <li class="tl-item" wire:key="act-{{ $h->id }}">
+                            <span class="tl-avatar">
+                                <span class="avatar avatar--sm avatar--blue">
+                                    {{ getInitials($h->changedBy?->name ?? '?', '') }}
+                                </span>
+                            </span>
+                            <div class="tl-body">
+                                <div class="tl-text">
+                                    <strong>{{ $h->changedBy?->name ?? '—' }}</strong>
+                                    وضعیت را به
+                                    <span class="badge {{ $h->toStatus?->badge_class ?? 'badge--info' }}"
+                                          style="font-size:10px">
+                                        {{ $h->toStatus?->label ?? '—' }}
+                                    </span>
+                                    تغییر داد روی
+                                    <a href="{{ route('work-orders.detail', $h->work_order_id) }}"
+                                       wire:navigate.hover
+                                       class="mono">{{ $h->workOrder?->code }}</a>
+                                </div>
+                                @if($h->note)
+                                    <div class="tl-meta">{{ $h->note }}</div>
+                                @endif
+                                <div class="tl-time">
+                                    {{ verta($h->created_at)->format('%d %B - H:i') }}
+                                </div>
+                            </div>
+                        </li>
+                    @empty
+                        <li style="padding:32px;text-align:center;color:var(--color-text-2);font-size:13px">
+                            فعالیتی ثبت نشده.
+                        </li>
+                    @endforelse
 
                 </ul>
             </section>
 
-            <!-- دستورکارها بر اساس وضعیت -->
+            {{-- دستورکارها بر اساس وضعیت --}}
             <section class="card">
                 <header class="card-head">
                     <h2>دستورکارها بر اساس وضعیت</h2>
-                    <span class="card-sub">از ابتدا</span>
+                    <span class="card-sub">در محدوده دسترسی شما</span>
                 </header>
                 <div style="padding:8px 0 12px">
 
-                    <div class="status-row">
-                        <span class="badge badge--neutral"><span class="badge__dot"></span>پیش‌نویس</span>
-                        <span class="status-bar"><span style="width:14%"></span></span>
-                        <span class="status-count">2</span>
-                    </div>
-
-                    <div class="status-row">
-                        <span class="badge badge--info"><span class="badge__dot"></span>باز</span>
-                        <span class="status-bar"><span style="width:57%"></span></span>
-                        <span class="status-count">8</span>
-                    </div>
-
-                    <div class="status-row">
-                        <span class="badge badge--primary"><span class="badge__dot"></span>در حال انجام</span>
-                        <span class="status-bar"><span style="width:79%"></span></span>
-                        <span class="status-count">11</span>
-                    </div>
-
-                    <div class="status-row">
-                        <span class="badge badge--warning"><span class="badge__dot"></span>متوقف</span>
-                        <span class="status-bar"><span style="width:21%"></span></span>
-                        <span class="status-count">3</span>
-                    </div>
-
-                    <div class="status-row">
-                        <span class="badge badge--success"><span class="badge__dot"></span>تکمیل‌شده</span>
-                        <span class="status-bar"><span style="width:100%"></span></span>
-                        <span class="status-count">14</span>
-                    </div>
-
-                    <div class="status-row">
-                        <span class="badge badge--neutral"><span class="badge__dot"></span>لغو شده</span>
-                        <span class="status-bar"><span style="width:7%"></span></span>
-                        <span class="status-count">1</span>
-                    </div>
+                    @forelse($this->statusBreakdown as $s)
+                        <div class="status-row" wire:key="sb-{{ $s['key'] }}">
+                            <span class="badge {{ $s['badge_class'] }}">
+                                <span class="badge__dot"></span>{{ $s['label'] }}
+                            </span>
+                            <span class="status-bar">
+                                <span style="width:{{ $s['percentage'] }}%"></span>
+                            </span>
+                            <span class="status-count">{{ $s['count'] }}</span>
+                        </div>
+                    @empty
+                        <div style="padding:32px;text-align:center;color:var(--color-text-2);font-size:13px">
+                            وضعیتی تعریف نشده.
+                        </div>
+                    @endforelse
 
                 </div>
             </section>
