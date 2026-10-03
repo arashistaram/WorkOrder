@@ -1,0 +1,59 @@
+services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: workorder-app
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+            - "443:443/udp"
+        environment:
+            APP_ENV: production
+            APP_DEBUG: "false"
+            OCTANE_SERVER: frankenphp
+        volumes:
+            - ./storage:/app/storage
+            - caddy_data:/data
+            - caddy_config:/config
+        depends_on:
+            - db
+            - redis
+        networks:
+            - workorder-net
+
+    db:
+        image: mysql:8.0
+        container_name: workorder-db
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: workorder
+            MYSQL_USER: workorder
+            MYSQL_PASSWORD: secret
+            MYSQL_ROOT_PASSWORD: rootsecret
+        volumes:
+            - db_data:/var/lib/mysql
+        ports:
+            - "3306:3306"
+        networks:
+            - workorder-net
+
+    redis:
+        image: redis:7-alpine
+        container_name: workorder-redis
+        restart: unless-stopped
+        volumes:
+            - redis_data:/data
+        networks:
+            - workorder-net
+
+volumes:
+    db_data:
+    redis_data:
+    caddy_data:
+    caddy_config:
+
+networks:
+    workorder-net:
+        driver: bridge
