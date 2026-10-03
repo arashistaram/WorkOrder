@@ -16,7 +16,7 @@
         <form wire:submit="login" class="form is-active" novalidate wire:key="login-form">
 
             <div class="field">
-                <label for="login-username">ایمیل</label>
+                <label for="login-username">نام کاربری</label>
                 <input
                     id="login-username"
                     type="text"
@@ -83,7 +83,7 @@
                     placeholder="arash123"
                     required
                 >
-                @error('regEmail') <span class="field-error">{{ $message }}</span> @enderror
+                @error('regUsername') <span class="field-error">{{ $message }}</span> @enderror
             </div>
 
             <div class="field">

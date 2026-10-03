@@ -135,7 +135,7 @@
                                        wire:keydown.enter="addChecklistItem"
                                        placeholder="آیتم جدید...">
                             </div>
-                            <button type="button"
+                            <button type="button" style="margin-top: 10px"
                                     class="btn btn--primary btn--sm"
                                     wire:click="addChecklistItem">
                                 افزودن
@@ -325,7 +325,7 @@
                                 <input type="number" step="0.25" min="0" dir="ltr"
                                        wire:model="actualHours" placeholder="0">
                             </div>
-                            <button type="button" class="btn btn--primary btn--sm"
+                            <button style="margin: 10px" type="button" class="btn btn--primary btn--sm"
                                     wire:click="saveActualHours">ذخیره</button>
                         </div>
                         @error('actualHours') <span class="field-error">{{ $message }}</span> @enderror
@@ -447,9 +447,9 @@
                             </div>
 
                             <div class="field" style="grid-column: span 2">
-                                <label>یادداشت (اختیاری)</label>
+                                <label>توضیح انجام کار</label>
                                 <div class="global-search" style="width:100%">
-                                    <textarea wire:model="statusNote" rows="3"
+                                    <textarea required wire:model="statusNote"  style="height: 60px; resize: none;"
                                               placeholder="دلیل تغییر وضعیت..."></textarea>
                                 </div>
                             </div>

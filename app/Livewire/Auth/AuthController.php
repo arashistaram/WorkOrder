@@ -64,7 +64,7 @@ final class AuthController extends Component
         return [
             'required' => 'فیلد :attribute الزامی است.',
             'username'    => 'نام کاربری وارد شده معتبر نیست.',
-            'unique'   => 'این ایمیل قبلاً ثبت شده است.',
+            'unique'   => 'این نام کاربری قبلاً ثبت شده است.',
             'min'      => ':attribute باید حداقل :min کاراکتر باشد.',
             'max'      => ':attribute نباید بیشتر از :max کاراکتر باشد.',
         ];
