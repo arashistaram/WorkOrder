@@ -197,6 +197,116 @@
 {{--                                    @error('estimated_hours') <span class="field-error">{{ $message }}</span> @enderror--}}
 {{--                                </div>--}}
 
+                                {{-- آپلود فایل‌ها --}}
+                                <div class="field" style="grid-column: span 2">
+                                    <label>فایل‌های پیوست (اختیاری)</label>
+
+                                    <label class="file-drop"
+                                           x-data="{
+           dragging: false,
+           uploading: false,
+           progress: 0
+       }"
+                                           @dragover.prevent="dragging = true"
+                                           @dragleave.prevent="dragging = false"
+                                           @drop.prevent="dragging = false"
+                                           :class="{ 'is-dragging': dragging, 'is-loading': uploading }">
+
+                                        <input type="file"
+                                               wire:model="newAttachments"
+                                               multiple
+                                               style="display:none"
+                                               accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,.txt,.csv"
+
+                                               {{-- ✅ رویدادهای اختصاصی آپلود Livewire --}}
+                                               x-on:livewire-upload-start="uploading = true; progress = 0"
+                                               x-on:livewire-upload-finish="uploading = false; progress = 100"
+                                               x-on:livewire-upload-error="uploading = false; progress = 0"
+                                               x-on:livewire-upload-cancel="uploading = false; progress = 0"
+                                               x-on:livewire-upload-progress="progress = $event.detail.progress">
+
+                                        {{-- حالت عادی --}}
+                                        <template x-if="!uploading">
+                                            <div style="display:contents">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                    <path d="m17 8-5-5-5 5"/>
+                                                    <path d="M12 3v12"/>
+                                                </svg>
+
+                                                <span class="file-drop__text">
+                فایل‌ها را بکشید یا کلیک کنید
+            </span>
+                                                <span class="file-drop__hint">
+                حداکثر ۱۰ فایل، هر کدام تا 30 MB
+            </span>
+                                            </div>
+                                        </template>
+
+                                        {{-- حالت لودینگ --}}
+                                        <template x-if="uploading">
+                                            <div style="display:contents">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                     stroke-width="2" stroke-linecap="round"
+                                                     style="animation: spin 1s linear infinite; width:32px; height:32px">
+                                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                                                </svg>
+                                                <span class="file-drop__text" style="color:#3b82f6">
+                در حال آپلود... <span x-text="progress + '%'"></span>
+            </span>
+                                                <span class="file-drop__hint">
+                لطفاً صبر کنید
+            </span>
+                                            </div>
+                                        </template>
+                                    </label>
+
+                                    {{-- پیش‌نمایش فایل‌ها --}}
+                                    @if(! empty($newAttachments))
+                                        <div class="file-previews">
+                                            @foreach($newAttachments as $i => $file)
+                                                <div class="file-preview" wire:key="fp-{{ $i }}-{{ $file->getFilename() }}">
+
+                                                    @if(str_starts_with($file->getMimeType() ?? '', 'image/'))
+                                                        <img src="{{ $file->temporaryUrl() }}"
+                                                             alt="{{ $file->getClientOriginalName() }}"
+                                                             class="file-preview__thumb">
+                                                    @else
+                                                        <span class="file-preview__icon">
+                                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                                 stroke-width="1.7" stroke-linecap="round">
+                                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                                <path d="M14 2v6h6"/>
+                                                            </svg>
+                                                        </span>
+                                                    @endif
+
+                                                    <div class="file-preview__info">
+                                                        <div class="file-preview__name">{{ $file->getClientOriginalName() }}</div>
+                                                        <div class="file-preview__size">
+                                                            {{ number_format($file->getSize() / 1024, 1) }} KB
+                                                        </div>
+                                                    </div>
+
+                                                    <button type="button"
+                                                            class="file-preview__remove"
+                                                            wire:click="removeNewAttachment({{ $i }})"
+                                                            title="حذف">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                             stroke-width="2" width="14" height="14">
+                                                            <path d="M18 6 6 18M6 6l12 12"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    @error('newAttachments') <span class="field-error">{{ $message }}</span> @enderror
+                                    @error('newAttachments.*') <span class="field-error">{{ $message }}</span> @enderror
+                                </div>
+
                             </div>
                         </div>
 
@@ -205,12 +315,19 @@
                             <button type="button" class="btn" wire:click="close">انصراف</button>
                             <button type="submit"
                                     class="btn btn--primary"
+                                    x-data="{ uploading: false }"
+                                    x-on:livewire-upload-start.window="uploading = true"
+                                    x-on:livewire-upload-finish.window="uploading = false"
+                                    x-on:livewire-upload-error.window="uploading = false"
+                                    :disabled="uploading"
                                     wire:loading.attr="disabled"
                                     wire:target="save">
-                                <span wire:loading.remove wire:target="save">
-                                    {{ $workOrderId ? 'ذخیره تغییرات' : 'ایجاد سفارش کار' }}
-                                </span>
+                                    <span wire:loading.remove wire:target="save"
+                                          x-show="!uploading">
+                                        {{ $workOrderId ? 'ذخیره تغییرات' : 'ایجاد سفارش کار' }}
+                                    </span>
                                 <span wire:loading wire:target="save">در حال ذخیره…</span>
+                                <span x-show="uploading">در حال آپلود فایل…</span>
                             </button>
                         </div>
                     </form>

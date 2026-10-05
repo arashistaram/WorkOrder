@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderPriority;
 use App\Models\WorkOrderStatus;
+use App\Services\WorkOrderAttachmentService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -17,13 +18,14 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 #[Layout('livewire.layouts._dashboard')]
 #[Title('سفارش کار ها')]
 final class WorkOrderManageController extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     public string $search         = '';
     public string $statusFilter   = '';
@@ -51,6 +53,8 @@ final class WorkOrderManageController extends Component
     public ?int $due_month = null;   // 1..12
     public ?int $due_day   = null;   // 1..31
 
+    public array $newAttachments = [];
+
     protected function rules(): array
     {
         return [
@@ -62,6 +66,14 @@ final class WorkOrderManageController extends Component
             'due_year'  => 'nullable|integer|min:1300|max:1500',
             'due_month' => 'nullable|integer|min:1|max:12',
             'due_day'   => 'nullable|integer|min:1|max:31',
+
+            'newAttachments'   => 'array|max:30',
+            'newAttachments.*' => [
+                'file',
+                'max:' . WorkOrderAttachmentService::MAX_FILE_SIZE_KB,
+                'mimetypes:' . implode(',', WorkOrderAttachmentService::ALLOWED_MIMES),
+            ],
+
 //            'assignee_id'     => 'nullable|exists:users,id',
 //            'due_date'        => 'nullable|date',
 //            'estimated_hours' => 'nullable|numeric|min:0|max:9999',
@@ -83,6 +95,10 @@ final class WorkOrderManageController extends Component
             'due_month.max'          => 'ماه باید بین ۱ تا ۱۲ باشد.',
             'due_day.min'            => 'روز باید بین ۱ تا ۳۱ باشد.',
             'due_day.max'            => 'روز باید بین ۱ تا ۳۱ باشد.',
+            'newAttachments.max'        => 'حداکثر 30 فایل می‌توانید آپلود کنید.',
+            'newAttachments.*.file'     => 'فایل انتخابی معتبر نیست.',
+            'newAttachments.*.max'      => 'حجم هر فایل نباید بیشتر از 30 مگابایت باشد.',
+            'newAttachments.*.mimetypes' => 'نوع فایل مجاز نیست.',
         ];
     }
 
@@ -142,7 +158,7 @@ final class WorkOrderManageController extends Component
             'title', 'description', 'department_id',
             'status_id', 'priority_id',
             'due_year', 'due_month', 'due_day',
-            'estimated_hours',
+            'estimated_hours', 'newAttachments'
         ]);
 
         if ($id) {
@@ -190,15 +206,19 @@ final class WorkOrderManageController extends Component
     /**
      * @throws \Throwable
      */
-    public function save(): void
+    public function save(WorkOrderAttachmentService $attachmentService): void
     {
         $data = $this->validate();
 
-        $data['due_date'] = $this->buildGregorianDueDate();
+        $attachments = $data['newAttachments'] ?? [];
+        unset($data['newAttachments']);
 
+        $data['due_date'] = $this->buildGregorianDueDate();
         unset($data['due_year'], $data['due_month'], $data['due_day']);
 
-        DB::transaction(function () use ($data) {
+
+        DB::transaction(function () use ($attachmentService, $data, $attachments) {
+
             if ($this->workOrderId) {
                 $wo = WorkOrder::query()->findOrFail($this->workOrderId);
 
@@ -206,11 +226,11 @@ final class WorkOrderManageController extends Component
                     $this->recordStatusChange($wo, $data['status_id'], 'تغییر از فرم ویرایش');
                 }
 
-                unset($data['assignee_id'], $data['assigned_by'], $data['assigned_at']);
                 $wo->update($data);
             } else {
-                $data['code']        = WorkOrder::generateCode();
-                $data['created_by']  = auth()->id();
+                $data['code']       = WorkOrder::generateCode();
+                $data['created_by'] = auth()->id();
+
                 $data['assignee_id'] = null;
                 $data['assigned_by'] = null;
                 $data['assigned_at'] = null;
@@ -218,8 +238,14 @@ final class WorkOrderManageController extends Component
                 $wo = WorkOrder::query()->create($data);
                 $this->recordStatusChange($wo, $data['status_id'], 'ایجاد سفارش کار', true);
             }
+
+
+            if (! empty($attachments)) {
+                $attachmentService->storeMany($wo, $attachments);
+            }
         });
 
+        $this->reset('newAttachments');
         $this->close();
 
         LivewireAlert::title('موفق')
@@ -283,6 +309,14 @@ final class WorkOrderManageController extends Component
     public function updatedDueYear(): void
     {
         $this->updatedDueMonth();
+    }
+
+    public function removeNewAttachment(int $index): void
+    {
+        if (isset($this->newAttachments[$index])) {
+            unset($this->newAttachments[$index]);
+            $this->newAttachments = array_values($this->newAttachments);
+        }
     }
 
     public function delete(int $id): void
@@ -407,11 +441,12 @@ final class WorkOrderManageController extends Component
     }
 
     #[Computed]
-    public function usersList()
+    public function usersList(): Collection
     {
         $user = auth()->user();
 
-        $query = User::query()->where('is_active', true)->orderBy('name');
+        $query = User::query()->where('is_active', true)
+            ->orderBy('name');
 
         if ($user->role === 'user') {
             $query->where('id', $user->id);

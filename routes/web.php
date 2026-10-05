@@ -31,6 +31,24 @@ Route::middleware(IsLogin::class)->group(function () {
         Route::get('/work-orders', WorkOrderManageController::class)
             ->name('work-orders');
 
+        Route::get(
+            '/work-orders/attachments/{attachment}/download',
+            function (\App\Models\WorkOrderAttachment $attachment) {
+                Gate::authorize('view', $attachment->workOrder);
+
+                $disk = Storage::disk($attachment->disk);
+
+                if (! $disk->exists($attachment->path)) {
+                    abort(404, 'فایل یافت نشد.');
+                }
+
+                return $disk->download(
+                    $attachment->path,
+                    $attachment->original_name
+                );
+            }
+        )->name('work-orders.attachments.download');
+
         Route::get('/work-orders/{id}', WorkOrderDetailController::class)
             ->name('work-orders.detail');
 

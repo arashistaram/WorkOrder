@@ -129,4 +129,16 @@ class WorkOrder extends Model
 
         return $code;
     }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(WorkOrderAttachment::class)->latest();
+    }
+
+    public function statusAttachments(): HasMany
+    {
+        return $this->hasMany(WorkOrderAttachment::class)
+            ->whereNotNull('status_history_id')
+            ->latest();
+    }
 }

@@ -98,6 +98,97 @@
                 </div>
             </div>
 
+            <div class="card">
+                <div class="card__head">
+                    <h3>
+                        فایل‌های ضمیمه
+                        <span class="badge badge--info" style="margin-inline-start:8px">
+                {{ $this->attachments->count() }}
+            </span>
+                    </h3>
+                </div>
+                <div class="card__body">
+
+                    {{-- آپلود سریع --}}
+                    @if($can['manageChecklist'])
+                        {{-- ... بدون تغییر --}}
+                    @endif
+
+                    {{-- لیست فایل‌ها --}}
+                    @forelse($this->attachments as $att)
+
+                        @php
+                            $downloadUrl = url()->to('/dashboard/work-orders/attachments/' . $att->id . '/download');
+                        @endphp
+
+                        <div class="attachment-item" wire:key="att-{{ $att->id }}">
+
+                            @if($att->is_image)
+                                <a href="{{ $downloadUrl }}" class="attachment-item__thumb">
+                                    <img src="{{ $downloadUrl }}"
+                                         alt="{{ $att->original_name }}"
+                                         loading="lazy">
+                                </a>
+                            @else
+                                <span class="attachment-item__icon attachment-item__icon--{{ $att->icon }}">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.7" stroke-linecap="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <path d="M14 2v6h6"/>
+                        </svg>
+                    </span>
+                            @endif
+
+                            <div class="attachment-item__info">
+                                <a href="{{ $downloadUrl }}" class="attachment-item__name">
+                                    {{ $att->original_name }}
+                                </a>
+                                <div class="attachment-item__meta">
+                                    {{ $att->size_human }}
+                                    • {{ $att->uploader?->name ?? '—' }}
+                                    • {{ verta($att->created_at)->format('%d %B - H:i') }}
+                                </div>
+                                @if($att->status_history_id)
+                                    <span class="badge badge--info" style="font-size:10px;margin-top:4px">
+                            ضمیمه تغییر وضعیت
+                        </span>
+                                @endif
+                            </div>
+
+                            <div class="attachment-item__actions">
+                                <a href="{{ $downloadUrl }}" class="icon-btn icon-btn--sm" title="دانلود">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 3v12"/>
+                                        <path d="m7 11 5 5 5-5"/>
+                                        <path d="M4 21h16"/>
+                                    </svg>
+                                </a>
+
+                                @if($can['manageChecklist'])
+                                    <button type="button"
+                                            class="icon-btn icon-btn--sm"
+                                            style="color:#dc2626"
+                                            wire:click="deleteAttachment({{ $att->id }})"
+                                            wire:confirm="این فایل حذف شود؟"
+                                            title="حذف">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                             stroke-width="1.7" stroke-linecap="round">
+                                            <path d="M18 6 6 18M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div style="text-align:center;padding:20px;color:var(--color-text-2);font-size:13px">
+                            فایلی ضمیمه نشده.
+                        </div>
+                    @endforelse
+
+                </div>
+            </div>
+
             {{-- ✅ چک‌لیست --}}
             <div class="card">
                 <div class="card__head">
@@ -222,6 +313,24 @@
                                 @if($h->note)
                                     <div style="margin-top:4px;font-size:13px">«{{ $h->note }}»</div>
                                 @endif
+
+                                @if($h->attachments->count())
+                                    <div class="history-attachments">
+                                        @foreach($h->attachments as $att)
+                                            <a href="{{ route('work-orders.attachments.download', ['attachment' => $att->id]) }}"
+                                               class="history-attachment">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                     stroke-width="1.7" stroke-linecap="round" style="width:14px;height:14px">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                    <path d="M14 2v6h6"/>
+                                                </svg>
+                                                {{ $att->original_name }}
+                                                <span style="opacity:.7;font-size:10px">({{ $att->size_human }})</span>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @endif
+
                             </div>
                         </div>
                     @empty
@@ -405,6 +514,56 @@
                                               placeholder="توضیح درباره تخصیص..."></textarea>
                                 </div>
                             </div>
+
+
+{{--                            <div class="field" style="grid-column: span 2">--}}
+{{--                                <label>فایل‌های ضمیمه (اختیاری)</label>--}}
+
+{{--                                <label class="file-drop file-drop--sm">--}}
+{{--                                    <input type="file"--}}
+{{--                                           wire:model="statusAttachments"--}}
+{{--                                           multiple--}}
+{{--                                           style="display:none"--}}
+{{--                                           accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,.txt,.csv">--}}
+
+{{--                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"--}}
+{{--                                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">--}}
+{{--                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>--}}
+{{--                                        <path d="m17 8-5-5-5 5"/>--}}
+{{--                                        <path d="M12 3v12"/>--}}
+{{--                                    </svg>--}}
+{{--                                    <span>افزودن فایل</span>--}}
+{{--                                </label>--}}
+
+{{--                                @if(! empty($statusAttachments))--}}
+{{--                                    <div class="file-previews">--}}
+{{--                                        @foreach($statusAttachments as $i => $file)--}}
+{{--                                            <div class="file-preview" wire:key="sa-{{ $i }}-{{ $file->getFilename() }}">--}}
+{{--                                                @if(str_starts_with($file->getMimeType() ?? '', 'image/'))--}}
+{{--                                                    <img src="{{ $file->temporaryUrl() }}" class="file-preview__thumb">--}}
+{{--                                                @else--}}
+{{--                                                    <span class="file-preview__icon">--}}
+{{--                                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"--}}
+{{--                                                             stroke-width="1.7" stroke-linecap="round">--}}
+{{--                                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>--}}
+{{--                                                            <path d="M14 2v6h6"/>--}}
+{{--                                                        </svg>--}}
+{{--                                                    </span>--}}
+{{--                                                @endif--}}
+{{--                                                <div class="file-preview__info">--}}
+{{--                                                    <div class="file-preview__name">{{ $file->getClientOriginalName() }}</div>--}}
+{{--                                                    <div class="file-preview__size">{{ number_format($file->getSize() / 1024, 1) }} KB</div>--}}
+{{--                                                </div>--}}
+{{--                                                <button type="button" class="file-preview__remove"--}}
+{{--                                                        wire:click="removeStatusAttachment({{ $i }})">✕</button>--}}
+{{--                                            </div>--}}
+{{--                                        @endforeach--}}
+{{--                                    </div>--}}
+{{--                                @endif--}}
+
+{{--                                @error('statusAttachments') <span class="field-error">{{ $message }}</span> @enderror--}}
+{{--                                @error('statusAttachments.*') <span class="field-error">{{ $message }}</span> @enderror--}}
+{{--                            </div>--}}
 
                         </div>
                     </div>

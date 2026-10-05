@@ -8,6 +8,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkOrderChecklistItem;
 use App\Models\WorkOrderStatus;
 use App\Services\OutputMessengerService;
+use App\Services\WorkOrderAttachmentService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -19,11 +20,13 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Layout('livewire.layouts._dashboard')]
 #[Title('جزئیات سفارش کار')]
 class WorkOrderDetailController extends Component
 {
+    use WithFileUploads;
     public int $workOrderId;
 
     public bool $showAssignModal = false;
@@ -40,6 +43,21 @@ class WorkOrderDetailController extends Component
 
     public ?float $actualHours = null;
 
+    public array $statusAttachments = [];
+    public array $detailNewAttachments = [];
+
+
+    protected function attachmentRules(string $field): array
+    {
+        return [
+            $field   => 'array|max:10',
+            $field . '.*' => [
+                'file',
+                'max:' . WorkOrderAttachmentService::MAX_FILE_SIZE_KB,
+                'mimetypes:' . implode(',', WorkOrderAttachmentService::ALLOWED_MIMES),
+            ],
+        ];
+    }
 
     public function mount(int $id): void
     {
@@ -249,6 +267,27 @@ class WorkOrderDetailController extends Component
         }
     }
 
+    protected function notifyStatusChange(): void
+    {
+        try {
+            $wo = $this->workOrder;
+
+            if (! $wo->created_by || $wo->created_by === auth()->id()) return;
+
+            $recipient = \App\Models\User::find($wo->created_by);
+            if (! $recipient) return;
+
+            app(OutputMessengerService::class)->notifyUser(
+                $recipient,
+                "🔄 وضعیت سفارش {$wo->code} تغییر کرد",
+                "وضعیت جدید: " . ($wo->status?->label ?? '—'),
+                ['type' => 'status_changed', 'wo_id' => $wo->id]
+            );
+        } catch (\Throwable $e) {
+            \Log::error('Status notification failed', ['error' => $e->getMessage()]);
+        }
+    }
+
     public function openStatusModal(): void
     {
         Gate::authorize('changeStatus', $this->workOrder);
@@ -267,36 +306,44 @@ class WorkOrderDetailController extends Component
     /**
      * @throws \Throwable
      */
-    public function changeStatus(): void
+    public function changeStatus(WorkOrderAttachmentService $attachmentService): void
     {
         Gate::authorize('changeStatus', $this->workOrder);
 
-        $this->validate([
+        $this->validate(array_merge([
             'newStatusId' => 'required|exists:work_order_statuses,id',
             'statusNote'  => 'nullable|string|max:1000',
-        ], [
+        ], $this->attachmentRules('statusAttachments')), [
             'newStatusId.required' => 'وضعیت جدید را انتخاب کنید.',
+            'statusAttachments.max' => 'حداکثر ۱۰ فایل مجاز است.',
+            'statusAttachments.*.max' => 'حجم هر فایل نباید بیشتر از ۱۰ MB باشد.',
+            'statusAttachments.*.mimetypes' => 'نوع فایل مجاز نیست.',
         ]);
 
         $wo = $this->workOrder;
 
-        if ((int) $wo->status_id === (int) $this->newStatusId) {
-            LivewireAlert::title('توجه')
-                ->text('وضعیت فعلی همان وضعیت انتخابی است.')
+        if ((int) $wo->status_id === (int) $this->newStatusId && empty($this->statusAttachments)) {
+            LivewireAlert::title('توجه')->text('وضعیت فعلی همان وضعیت انتخابی است.')
                 ->info()->timer(2500)->show();
             return;
         }
 
-        DB::transaction(function () use ($wo) {
+        $attachments = $this->statusAttachments;
+
+        DB::transaction(function () use ($wo, $attachments, $attachmentService) {
             $newStatus = WorkOrderStatus::query()->findOrFail($this->newStatusId);
 
-            $wo->statusHistories()->create([
+            $history = $wo->statusHistories()->create([
                 'from_status_id' => $wo->status_id,
                 'to_status_id'   => $this->newStatusId,
                 'changed_by'     => auth()->id(),
                 'note'           => $this->statusNote,
                 'created_at'     => now(),
             ]);
+
+            if (! empty($attachments)) {
+                $attachmentService->storeMany($wo, $attachments, $history->id);
+            }
 
             $updates = ['status_id' => $this->newStatusId];
 
@@ -313,13 +360,74 @@ class WorkOrderDetailController extends Component
             $wo->update($updates);
         });
 
+        $this->reset('statusAttachments');
         $this->refreshWorkOrder();
         $this->closeStatusModal();
 
         LivewireAlert::title('موفق')->text('وضعیت تغییر کرد.')
             ->success()->timer(3000)->show();
+
+        $this->notifyStatusChange();
     }
 
+    public function uploadDetailAttachments(WorkOrderAttachmentService $attachmentService): void
+    {
+        Gate::authorize('manageChecklist', $this->workOrder);
+
+        $this->validate($this->attachmentRules('detailNewAttachments'), [
+            'detailNewAttachments.max' => 'حداکثر ۱۰ فایل مجاز است.',
+        ]);
+
+        if (empty($this->detailNewAttachments)) {
+            return;
+        }
+
+        $attachmentService->storeMany($this->workOrder, $this->detailNewAttachments);
+
+        $this->reset('detailNewAttachments');
+        $this->refreshWorkOrder();
+
+        LivewireAlert::title('موفق')->text('فایل‌ها با موفقیت آپلود شدند.')
+            ->success()->timer(2000)->show();
+    }
+
+    #[Computed]
+    public function attachments()
+    {
+        return $this->workOrder->attachments()->with('uploader')->get();
+    }
+
+    public function removeDetailAttachment(int $index): void
+    {
+        if (isset($this->detailNewAttachments[$index])) {
+            unset($this->detailNewAttachments[$index]);
+            $this->detailNewAttachments = array_values($this->detailNewAttachments);
+        }
+    }
+
+    public function removeStatusAttachment(int $index): void
+    {
+        if (isset($this->statusAttachments[$index])) {
+            unset($this->statusAttachments[$index]);
+            $this->statusAttachments = array_values($this->statusAttachments);
+        }
+    }
+
+    public function deleteAttachment(int $id): void
+    {
+        $attachment = \App\Models\WorkOrderAttachment::query()
+            ->where('work_order_id', $this->workOrderId)
+            ->findOrFail($id);
+
+        Gate::authorize('manageChecklist', $this->workOrder);
+
+        $attachment->delete();
+
+        $this->refreshWorkOrder();
+
+        LivewireAlert::title('حذف شد')->text('فایل حذف شد.')
+            ->success()->timer(1800)->show();
+    }
     public function addChecklistItem(): void
     {
         Gate::authorize('manageChecklist', $this->workOrder);

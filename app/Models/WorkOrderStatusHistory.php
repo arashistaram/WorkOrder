@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Query\Builder;
 
 class WorkOrderStatusHistory extends Model
@@ -39,5 +40,10 @@ class WorkOrderStatusHistory extends Model
     public function changedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'changed_by');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(WorkOrderAttachment::class, 'status_history_id');
     }
 }
