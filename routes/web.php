@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\IsLogin;
+use App\Livewire\AiChatController;
 use App\Livewire\Auth\AuthController;
 use App\Livewire\Dashboard\Basic\WorkOrderPriorityManageController;
 use App\Livewire\Dashboard\Basic\WorkOrderStatusController;
@@ -65,8 +66,23 @@ Route::middleware(IsLogin::class)->group(function () {
             ->name('work-order-priorities-manage');
 
         Route::get('output-messenger-manage', OutputMessengerManageController::class)
-//            ->middleware('role:admin')
             ->name('output-messenger-manage');
+
+        Route::get('/ai-assistant', AiChatController::class)
+            ->name('ai-assistant');
     });
 
+});
+
+
+Route::get('/ollama-debug-tools', function (\App\Services\Ai\McpAgentService $service) {
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('toolsForOllama');
+    $method->setAccessible(true);
+    $tools = $method->invoke($service);
+
+    return response()->json([
+        'count' => count($tools),
+        'tools' => $tools,
+    ], 200, [], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 });

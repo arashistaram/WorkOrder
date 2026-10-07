@@ -66,6 +66,13 @@
                 Output Messenger
             </a>
         @endif
+
+        <p class="nav-label">هوشمند</p>
+
+        <a href="{{ route('ai-assistant') }}" wire:navigate.hover
+           class="nav-item {{ request()->is('dashboard/ai-assistant') ? 'is-active' : '' }}">
+            🤖 دستیار هوشمند
+        </a>
     </nav>
 
     <div class="sidebar-footer">
