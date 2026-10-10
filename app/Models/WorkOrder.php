@@ -16,8 +16,9 @@ class WorkOrder extends Model
     protected $fillable = [
         'code', 'title', 'description',
         'department_id', 'assignee_id', 'assigned_by', 'assigned_at',
-        'customer_id', 'project_id', 'location_id', 'asset_id', 'category_id',
         'status_id', 'priority_id', 'created_by',
+        'approval_status', 'approved_by', 'approved_at',
+        'rejected_at', 'rejection_reason',
         'due_date', 'started_at', 'completed_at', 'cancelled_at',
         'estimated_hours', 'actual_hours', 'metadata',
     ];
@@ -31,6 +32,9 @@ class WorkOrder extends Model
         'metadata'      => 'array',
         'estimated_hours' => 'decimal:2',
         'actual_hours'    => 'decimal:2',
+        'approval_status' => 'integer',
+        'approved_at'     => 'datetime',
+        'rejected_at'     => 'datetime',
     ];
 
     public function department(): BelongsTo {
@@ -44,6 +48,11 @@ class WorkOrder extends Model
     }
     public function creator(): BelongsTo {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     public function status(): BelongsTo {
@@ -86,6 +95,20 @@ class WorkOrder extends Model
         return $q->whereNull('assignee_id');
     }
 
+    public function scopePendingApproval($q)
+    {
+        return $q->where('approval_status', 0);
+    }
+
+    public function scopeApproved($q)
+    {
+        return $q->where('approval_status', 1);
+    }
+
+    public function scopeRejected($q)
+    {
+        return $q->where('approval_status', 2);
+    }
     public function scopeAssignedTo(Builder $q, int $userId): Builder
     {
         return $q->where('assignee_id', $userId);
@@ -141,4 +164,28 @@ class WorkOrder extends Model
             ->whereNotNull('status_history_id')
             ->latest();
     }
+    public function getIsPendingApprovalAttribute(): bool
+    {
+        return $this->approval_status === 0;
+    }
+
+    public function getIsApprovedAttribute(): bool
+    {
+        return $this->approval_status === 1;
+    }
+
+    public function getIsRejectedAttribute(): bool
+    {
+        return $this->approval_status === 2;
+    }
+
+    public function getApprovalLabelAttribute(): string
+    {
+        return match ($this->approval_status) {
+            1  => 'تایید شده',
+            2  => 'رد شده',
+            default => 'در انتظار تایید',
+        };
+    }
+
 }

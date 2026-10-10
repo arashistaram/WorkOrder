@@ -33,8 +33,15 @@ return new class extends Migration
             $table->foreignId('priority_id')
                 ->constrained('work_order_priorities')->restrictOnDelete();
 
+            // approval columns — defined once, in the desired order
+            $table->tinyInteger('approval_status')->default(0);
+            $table->foreignId('approved_by')->nullable()
+                ->constrained('users')->nullOnDelete();
+            $table->timestamp('approved_at')->nullable();
+            $table->timestamp('rejected_at')->nullable();
+            $table->text('rejection_reason')->nullable();
 
-            // ایدی نفری است که میخواد از دپارتمان خود به دپارتمان دیگری بزند
+            // user who created / transferred the work order from their dept to another
             $table->foreignId('created_by')
                 ->constrained('users')->restrictOnDelete();
 
@@ -43,8 +50,8 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
 
-            $table->decimal('estimated_hours', 6, 2)->nullable(); // ساعات بر اورده شده
-            $table->decimal('actual_hours', 6, 2)->nullable(); // ساعت واقعی
+            $table->decimal('estimated_hours', 6, 2)->nullable();
+            $table->decimal('actual_hours', 6, 2)->nullable();
 
             $table->json('metadata')->nullable();
 
@@ -57,6 +64,7 @@ return new class extends Migration
             $table->index(['status_id', 'due_date'], 'wo_status_due_idx');
             $table->index(['created_by']);
             $table->index(['priority_id', 'status_id']);
+            $table->index(['approval_status', 'created_at'], 'wo_approval_idx');
         });
     }
 

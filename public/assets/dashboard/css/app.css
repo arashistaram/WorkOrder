@@ -1618,3 +1618,20 @@ table.table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5p
         padding: 10px 12px;
     }
 }
+
+
+.badge--warning { background: #fef3c7; color: #92400e; }
+.badge--orange  { background: #ffedd5; color: #c2410c; }
+.badge--orange {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.nav-count {
+    background: #dc2626;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-inline-start: auto;
+}

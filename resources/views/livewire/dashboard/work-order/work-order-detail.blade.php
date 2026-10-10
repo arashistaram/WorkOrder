@@ -79,6 +79,18 @@
                     تغییر وضعیت
                 </button>
             @endif
+
+            @if($can['approve'] && $wo->is_pending_approval)
+                <button wire:click="approve" class="btn btn--primary"
+                        wire:confirm="از تایید مطمئن هستید؟">
+                    <svg class="icon icon--sm" ...><path d="M20 6 9 17l-5-5"/></svg>
+                    تایید سفارش
+                </button>
+                <button wire:click="$set('showRejectModal', true)" class="btn"
+                        style="color:#dc2626">
+                    رد
+                </button>
+            @endif
         </div>
     </div>
 
@@ -420,6 +432,27 @@
 
 {{--                        <dt>ساعت تخمینی</dt>--}}
 {{--                        <dd>{{ $wo->estimated_hours ? $wo->estimated_hours . ' ساعت' : '—' }}</dd>--}}
+
+                        <dt>وضعیت تایید</dt>
+                        <dd>
+                            @if($wo->is_pending_approval)
+                                <span class="badge badge--orange">در انتظار تایید</span>
+                            @elseif($wo->is_approved)
+                                <span class="badge badge--success">تایید شده</span>
+                                @if($wo->approvedBy)
+                                    <small style="color:var(--color-text-2)">
+                                        توسط {{ $wo->approvedBy->name }} • {{ verta($wo->approved_at)->format('%d %B') }}
+                                    </small>
+                                @endif
+                            @else
+                                <span class="badge badge--danger">رد شده</span>
+                                @if($wo->rejection_reason)
+                                    <div style="margin-top:6px;padding:8px;background:#fee2e2;border-radius:6px;font-size:12px">
+                                        <strong>دلیل:</strong> {{ $wo->rejection_reason }}
+                                    </div>
+                                @endif
+                            @endif
+                        </dd>
                     </dl>
                 </div>
             </div>
@@ -496,7 +529,7 @@
                                  style="grid-column: span 2">
                                 <label>واحد مقصد <span class="req">*</span></label>
                                 <div class="global-search" style="width:100%">
-                                    <select wire:model.live="assignToDeptId">
+                                    <select wire:model.live="assignToDeptId" disabled>
                                         <option value="">انتخاب کنید</option>
                                         @foreach($this->departmentsList as $d)
                                             <option value="{{ $d->id }}">{{ $d->name }}</option>

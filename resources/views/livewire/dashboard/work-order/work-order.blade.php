@@ -7,7 +7,7 @@
         </div>
 
         <div class="page-head-actions d-flex align-items-center gap-2">
-            @can('create', \App\Models\WorkOrder::class)
+{{--            @can('create', \App\Models\WorkOrder::class)--}}
                 <button wire:click="open" class="btn btn--primary" data-action="new-wo">
                     <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
                          stroke-linecap="round" aria-hidden="true">
@@ -15,7 +15,7 @@
                     </svg>
                     سفارش کار جدید
                 </button>
-            @endcan
+{{--            @endcan--}}
         </div>
     </div>
 
@@ -71,7 +71,6 @@
                                 </div>
 
                                 <div class="form-section-label">تخصیص و وضعیت</div>
-
                                 {{-- دپارتمان --}}
                                 <div class="field @error('department_id') has-error @enderror">
                                     <label>واحد <span class="req">*</span></label>
@@ -79,7 +78,11 @@
                                         <select wire:model="department_id">
                                             <option value="">انتخاب کنید</option>
                                             @foreach($this->departmentsList as $d)
-                                                <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                                @if(auth()->user()->role === 'user' && auth()->user()->departments[0]->id === $d->id)
+                                                    <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                                @else
+                                                    <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                                @endif
                                             @endforeach
                                         </select>
                                     </div>
@@ -441,6 +444,13 @@
                         </th>
                         <th>
                             <button class="th-sort" wire:click="sortBy('due_date')">
+                                وضعیت تایید مدیر
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                                     stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </button>
+                        </th>
+                        <th>
+                            <button class="th-sort" wire:click="sortBy('due_date')">
                                 سررسید
                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -512,6 +522,23 @@
                                     </span>
                                 @endif
                             </td>
+
+                            <td data-label="تایید">
+                                @if($wo->is_pending_approval)
+                                    <span class="badge badge--orange">
+                                        <span class="badge__dot"></span>در انتظار تایید
+                                    </span>
+                                                            @elseif($wo->is_approved)
+                                                                <span class="badge badge--success">
+                                        <span class="badge__dot"></span>تایید شده
+                                    </span>
+                                                            @else
+                                                                <span class="badge badge--danger">
+                                        <span class="badge__dot"></span>رد شده
+                                    </span>
+                                @endif
+                            </td>
+
 
                             <td class="cell-date" data-label="سررسید">
                                 {{ $wo->due_date ? verta($wo->due_date)->format('%d %B') : '—' }}

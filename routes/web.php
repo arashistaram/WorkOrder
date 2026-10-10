@@ -50,25 +50,33 @@ Route::middleware(IsLogin::class)->group(function () {
             }
         )->name('work-orders.attachments.download');
 
+        Route::get('/work-orders/approvals',
+            \App\Livewire\Dashboard\WorkOrder\WorkOrderApprovalController::class
+        )->name('work-orders.approvals');
+
         Route::get('/work-orders/{id}', WorkOrderDetailController::class)
             ->name('work-orders.detail');
 
         Route::get('department', DepartmentController::class)
+            ->middleware('role:admin')
             ->name("department");
 
         Route::get('user-manage', UserManageController::class)
+            ->middleware('role:admin')
             ->name("user-manage");
 
         Route::get('work-order-status-manage', WorkOrderStatusController::class)->middleware('role:admin')
             ->name("work-order-status-manage");
 
-        Route::get('work-order-priorities-manage', WorkOrderPriorityManageController::class)->middleware('role:admin')
+        Route::get('work-order-priorities-manage', WorkOrderPriorityManageController::class)
+            ->middleware('role:admin')
             ->name('work-order-priorities-manage');
 
         Route::get('output-messenger-manage', OutputMessengerManageController::class)
             ->name('output-messenger-manage');
 
         Route::get('/ai-assistant', AiChatController::class)
+            ->middleware('role:admin')
             ->name('ai-assistant');
     });
 

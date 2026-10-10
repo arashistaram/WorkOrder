@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
 //        $this->call(UserSeeder::class);
 //        $this->call(WorkOrderStatusSeeder::class);
 //        $this->call(WorkOrderPrioritySeeder::class);
-        $this->call(WorkOrderSeeder::class);
+//        $this->call(DepartmentSeeder::class);
+//        $this->call(WorkOrderSeeder::class);
     }
 }

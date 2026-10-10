@@ -39,8 +39,9 @@ class WorkOrderStatus extends Model
             'green'  => 'badge--success',
             'red'    => 'badge--danger',
             'yellow' => 'badge--warning',
+            'orange' => 'badge--orange',
             'blue'   => 'badge--info',
-            'purple' => 'badge--info',
+            'purple' => 'badge--violet',
             default  => 'badge--info',
         };
     }

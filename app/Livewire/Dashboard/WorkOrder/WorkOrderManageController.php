@@ -181,15 +181,22 @@ final class WorkOrderManageController extends Component
         } else {
             $this->workOrderId = null;
 
-            $this->status_id = WorkOrderStatus::query()
-                ->where('key', 'pending')->value('id')
-                ?? WorkOrderStatus::query()->active()->value('id');
+            $user = auth()->user();
+
+            if ($user->role === 'user') {
+                $this->status_id = WorkOrderStatus::query()
+                    ->where('key', 'awaiting_approval')->value('id');
+            } else {
+                $this->status_id = WorkOrderStatus::query()
+                    ->where('key', 'pending')->value('id')
+                    ?? WorkOrderStatus::query()->active()->value('id');
+            }
 
             $this->priority_id = WorkOrderPriority::query()
                 ->where('key', 'medium')->value('id')
                 ?? WorkOrderPriority::query()->active()->value('id');
 
-            $this->department_id = auth()->user()?->departments()->first()?->id;
+            $this->department_id = $user->departments()->first()?->id;
         }
 
         unset($this->statusesList);
@@ -216,8 +223,8 @@ final class WorkOrderManageController extends Component
         $data['due_date'] = $this->buildGregorianDueDate();
         unset($data['due_year'], $data['due_month'], $data['due_day']);
 
-
-        DB::transaction(function () use ($attachmentService, $data, $attachments) {
+        $user = auth()->user();
+        DB::transaction(function () use ($attachmentService, $data, $attachments, $user) {
 
             if ($this->workOrderId) {
                 $wo = WorkOrder::query()->findOrFail($this->workOrderId);
@@ -235,6 +242,15 @@ final class WorkOrderManageController extends Component
                 $data['assigned_by'] = null;
                 $data['assigned_at'] = null;
 
+                if ($user->role === 'user') {
+                    $data['approval_status'] = 0;
+                    // status = awaiting_approval
+                } else {
+                    $data['approval_status'] = 1;
+                    $data['approved_by']     = $user->id;
+                    $data['approved_at']     = now();
+                }
+
                 $wo = WorkOrder::query()->create($data);
                 $this->recordStatusChange($wo, $data['status_id'], 'ایجاد سفارش کار', true);
             }
@@ -248,8 +264,11 @@ final class WorkOrderManageController extends Component
         $this->reset('newAttachments');
         $this->close();
 
-        LivewireAlert::title('موفق')
-            ->text('سفارش کار با موفقیت ذخیره شد.')
+        $message = $user->role === 'user'
+            ? 'سفارش کار ثبت شد و در انتظار تایید مدیر است.'
+            : 'سفارش کار با موفقیت ذخیره شد.';
+
+        LivewireAlert::title('موفق')->text($message)
             ->success()->timer(3000)->show();
     }
 
@@ -342,7 +361,7 @@ final class WorkOrderManageController extends Component
 
     public function sortBy(string $field): void
     {
-        $allowed = ['id', 'code', 'title', 'due_date', 'created_at', 'status_id', 'priority_id'];
+        $allowed = ['id', 'code', 'title', 'due_date', 'created_at', 'status_id', 'priority_id', 'approval_status'];
 
         if (! in_array($field, $allowed, true)) return;
 
@@ -370,9 +389,11 @@ final class WorkOrderManageController extends Component
                 $deptIds = $user->managedDepartments()->pluck('departments.id');
 
                 $q->where(function ($qq) use ($deptIds, $user) {
-                    $qq->whereIn('department_id', $deptIds)
-                        ->orWhere('created_by', $user->id)
-                        ->orWhere('assignee_id', $user->id);
+                    $qq->where('created_by', $user->id)
+                    ->orWhere('assignee_id', $user->id)
+                    ->orWhere('approved_by', $user->id)
+                    ->orWhere('assigned_by', $user->id)
+                    ->orWhereIn('department_id', $deptIds);
                 });
             })
 
@@ -417,7 +438,12 @@ final class WorkOrderManageController extends Component
             ->where('is_active', true)
             ->orderBy('id');
 
-        if (! $this->workOrderId) {
+        $user = auth()->user();
+
+        if ($user->role === 'user') {
+            $query->where('key', 'awaiting_approval');
+        }
+        elseif (! $this->workOrderId) {
             $query->whereIn('key', ['draft', 'pending']);
         }
 

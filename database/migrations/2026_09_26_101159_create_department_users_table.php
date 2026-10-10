@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('role')->default('user'); // ['manager', 'user']
 
             $table->boolean('is_active')->default(true);
+
             $table->string('joined_at')->nullable();
             $table->string('left_at')->nullable();
 

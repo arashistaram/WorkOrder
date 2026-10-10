@@ -46,6 +46,9 @@ class WorkOrderDetailController extends Component
     public array $statusAttachments = [];
     public array $detailNewAttachments = [];
 
+    public bool $showRejectModal = false;
+    public string $rejectionReason = '';
+
 
     protected function attachmentRules(string $field): array
     {
@@ -102,6 +105,7 @@ class WorkOrderDetailController extends Component
             'updateActualHours' => $user->can('updateActualHours', $wo),
             'update'            => $user->can('update', $wo),
             'delete'            => $user->can('delete', $wo),
+            'approve'           => $user->can('approve', $wo),
         ];
     }
     public function statusesList()
@@ -496,7 +500,77 @@ class WorkOrderDetailController extends Component
             ->success()->timer(2000)->show();
     }
 
+    public function approve(): void
+    {
+        Gate::authorize('approve', $this->workOrder);
 
+        DB::transaction(function () {
+            $wo = $this->workOrder;
+
+            $pendingStatusId = WorkOrderStatus::query()
+                ->where('key', 'pending')->value('id');
+
+            $wo->statusHistories()->create([
+                'from_status_id' => $wo->status_id,
+                'to_status_id'   => $pendingStatusId,
+                'changed_by'     => auth()->id(),
+                'note'           => 'تایید توسط مدیر از صفحه جزئیات',
+                'created_at'     => now(),
+            ]);
+
+            $wo->update([
+                'approval_status' => 1,
+                'approved_by'     => auth()->id(),
+                'approved_at'     => now(),
+                'status_id'       => $pendingStatusId,
+            ]);
+        });
+
+        $this->refreshWorkOrder();
+
+        LivewireAlert::title('تایید شد')->text('سفارش تایید شد.')
+            ->success()->timer(2500)->show();
+    }
+
+    public function reject(): void
+    {
+        Gate::authorize('approve', $this->workOrder);
+
+        $this->validate([
+            'rejectionReason' => 'required|string|max:1000',
+        ], [
+            'rejectionReason.required' => 'دلیل رد را وارد کنید.',
+        ]);
+
+        DB::transaction(function () {
+            $wo = $this->workOrder;
+
+            $rejectedStatusId = WorkOrderStatus::query()
+                ->where('key', 'rejected')->value('id');
+
+            $wo->statusHistories()->create([
+                'from_status_id' => $wo->status_id,
+                'to_status_id'   => $rejectedStatusId,
+                'changed_by'     => auth()->id(),
+                'note'           => 'رد شده: ' . $this->rejectionReason,
+                'created_at'     => now(),
+            ]);
+
+            $wo->update([
+                'approval_status'  => 2,
+                'approved_by'      => auth()->id(),
+                'rejected_at'      => now(),
+                'rejection_reason' => $this->rejectionReason,
+                'status_id'        => $rejectedStatusId,
+            ]);
+        });
+
+        $this->closeRejectModal();
+        $this->refreshWorkOrder();
+
+        LivewireAlert::title('رد شد')->text('سفارش رد شد.')
+            ->success()->timer(2500)->show();
+    }
     public function render(): View|Factory|\Illuminate\View\View
     {
         return view('livewire.dashboard.work-order.work-order-detail');

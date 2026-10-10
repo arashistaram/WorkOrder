@@ -23,8 +23,26 @@ class WorkOrderPolicy
             return true;
         }
 
+        if ($workOrder->is_pending_approval) {
+            return $user->isManagerOf($workOrder->department_id);
+        }
 
         if ($workOrder->assignee_id === $user->id) {
+            return true;
+        }
+        if ($workOrder->created_by === $user->id) {
+            return true;
+        }
+
+        if ($workOrder->is_rejected) {
+            return false;
+        }
+
+        if ($workOrder->assignee_id === $user->id) {
+            return true;
+        }
+
+        if ($workOrder->assignments()->where('assigned_to', $user->id)->exists()) {
             return true;
         }
 
@@ -41,6 +59,26 @@ class WorkOrderPolicy
         }
 
         return false;
+    }
+
+
+    public function approve(User $user, WorkOrder $workOrder): bool
+    {
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        if ($user->role !== 'manager') {
+            return false;
+        }
+
+        if ($workOrder->approval_status !== 0) {
+            return false;
+        }
+
+        return $user->managedDepartments()
+            ->where('departments.id', $workOrder->department_id)
+            ->exists();
     }
 
     public function create(User $user): bool

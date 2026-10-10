@@ -17,26 +17,28 @@
             <livewire:shared.work-order-nav-count :key="'wo-nav-' . auth()->id()" />
         </a>
 
+        @if(auth()->user()->role === 'admin')
         <p class="nav-label">مدیریت</p>
 
-        <a href="{{ route('department') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/department') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 21h18"/>
-                <path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
-                <path d="M15 21V9h2a2 2 0 0 1 2 2v10"/>
-                <path d="M9 7h2"/>
-                <path d="M9 11h2"/>
-                <path d="M9 15h2"/>
-                <path d="M17 13h.01"/>
-                <path d="M17 17h.01"/>
-            </svg>            واحد ها
-        </a>
-
-        <a href="{{ route('user-manage') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/user-manage') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            کاربران
-        </a>
-
+            <a href="{{ route('department') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/department') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 21h18"/>
+                    <path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
+                    <path d="M15 21V9h2a2 2 0 0 1 2 2v10"/>
+                    <path d="M9 7h2"/>
+                    <path d="M9 11h2"/>
+                    <path d="M9 15h2"/>
+                    <path d="M17 13h.01"/>
+                    <path d="M17 17h.01"/>
+                </svg>            واحد ها
+            </a>
+        @endif
+        @if(auth()->user()->role === 'admin')
+            <a href="{{ route('user-manage') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/user-manage') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                کاربران
+            </a>
+        @endif
         @if(auth()->user()?->role === 'admin')
             <p class="nav-label">تنطیمات</p>
 
@@ -67,12 +69,38 @@
             </a>
         @endif
 
+        @if(in_array(auth()->user()->role, ['admin', 'manager']))
+            <a href="{{ route('work-orders.approvals') }}" wire:navigate.hover
+               class="nav-item {{ request()->is('dashboard/work-orders/approvals') ? 'is-active' : '' }}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5"/>
+                </svg>
+                تایید سفارش‌ها
+                @php
+                    $pendingCount = \App\Models\WorkOrder::query()
+                        ->where('approval_status', 0)
+                        ->when(auth()->user()->role === 'manager', function ($q) {
+                            $deptIds = auth()->user()->managedDepartments()->pluck('departments.id');
+                            $q->whereIn('department_id', $deptIds);
+                        })
+                        ->count();
+                @endphp
+                @if($pendingCount > 0)
+                    <span class="nav-count">{{ $pendingCount }}</span>
+                @endif
+            </a>
+        @endif
+
+        @if(auth()->user()->role === 'admin')
         <p class="nav-label">هوشمند</p>
 
-        <a href="{{ route('ai-assistant') }}" wire:navigate.hover
-           class="nav-item {{ request()->is('dashboard/ai-assistant') ? 'is-active' : '' }}">
-            🤖 دستیار هوشمند
-        </a>
+            <a href="{{ route('ai-assistant') }}" wire:navigate.hover
+               class="nav-item {{ request()->is('dashboard/ai-assistant') ? 'is-active' : '' }}">
+                🤖 دستیار هوشمند
+            </a>
+        @endif
+
     </nav>
 
     <div class="sidebar-footer">
