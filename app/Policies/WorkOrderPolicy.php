@@ -76,9 +76,15 @@ class WorkOrderPolicy
             return false;
         }
 
-        return $user->managedDepartments()
-            ->where('departments.id', $workOrder->department_id)
-            ->exists();
+        $isEffectiveSupervisor = $user->isEffectiveSupervisorOf($workOrder->department_id);
+        $isEffectiveManager    = $user->isEffectiveManagerOf($workOrder->department_id);
+
+        return ($isEffectiveSupervisor || $isEffectiveManager)
+            && (int) $workOrder->approval_status === 0;
+
+//        return $user->managedDepartments()
+//            ->where('departments.id', $workOrder->department_id)
+//            ->exists();
     }
 
     public function create(User $user): bool

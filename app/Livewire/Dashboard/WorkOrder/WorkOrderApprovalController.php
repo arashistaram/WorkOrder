@@ -37,17 +37,27 @@ class WorkOrderApprovalController extends Component
         return WorkOrder::query()
             ->with(['department', 'creator', 'priority'])
             ->where('approval_status', 0)
-            ->when($user->role === 'manager', function ($q) use ($user) {
-                $deptIds = $user->managedDepartments()->pluck('departments.id');
-                $q->whereIn('department_id', $deptIds);
+            ->when(true, function ($q) use ($user) {
+
+                $supervisedIds = $user->effectiveSupervisedDepartmentIds();
+
+                $managedIds    = $user->effectiveManagedDepartmentIds();
+
+                $deptIds = $supervisedIds->merge($managedIds)->unique();
+
+                if ($deptIds->isEmpty()) {
+                    $q->whereRaw('1=0');
+                } else {
+                    $q->whereIn('department_id', $deptIds);
+                }
             })
             ->when($this->search !== '', function ($q) {
                 $s = '%' . $this->search . '%';
-                $q->where(function ($qq) use ($s) {
-                    $qq->where('code', 'like', $s)
-                        ->orWhere('title', 'like', $s)
-                        ->orWhere('description', 'like', $s);
-                });
+                $q->where(fn($qq) => $qq
+                    ->where('code', 'like', $s)
+                    ->orWhere('title', 'like', $s)
+                    ->orWhere('description', 'like', $s)
+                );
             })
             ->orderByDesc('created_at')
             ->paginate(15);

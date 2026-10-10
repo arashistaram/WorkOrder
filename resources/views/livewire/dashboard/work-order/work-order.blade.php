@@ -78,9 +78,9 @@
                                         <select wire:model="department_id">
                                             <option value="">انتخاب کنید</option>
                                             @foreach($this->departmentsList as $d)
-                                                @if(auth()->user()->role === 'user' && auth()->user()->departments[0]->id === $d->id)
+                                                @if(auth()->user()->departments[0]->id === $d->id)
                                                     <option value="{{ $d->id }}">{{ $d->name }}</option>
-                                                @else
+                                                @elseif(auth()->user()->role === 'manager' || auth()->user()->isPrivileged())
                                                     <option value="{{ $d->id }}">{{ $d->name }}</option>
                                                 @endif
                                             @endforeach

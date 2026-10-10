@@ -8,6 +8,7 @@ use App\Livewire\Dashboard\Basic\WorkOrderStatusController;
 use App\Livewire\Dashboard\DashboardController;
 use App\Livewire\Dashboard\Department\DepartmentController;
 use App\Livewire\Dashboard\User\UserManageController;
+use App\Livewire\Dashboard\WorkOrder\SubstituteController;
 use App\Livewire\Dashboard\WorkOrder\WorkOrderManageController;
 use App\Livewire\Dashboard\WorkOrder\WorkOrderDetailController;
 use App\Livewire\OutputMessengerManageController;
@@ -56,6 +57,9 @@ Route::middleware(IsLogin::class)->group(function () {
 
         Route::get('/work-orders/{id}', WorkOrderDetailController::class)
             ->name('work-orders.detail');
+
+        Route::get('/dashboard/substitutes', SubstituteController::class)
+            ->name('work-orders.substitutes');
 
         Route::get('department', DepartmentController::class)
             ->middleware('role:admin')

@@ -67,6 +67,11 @@
                 </svg>
                 Output Messenger
             </a>
+
+            <a href="{{ route('work-orders.substitutes') }}" wire:navigate.hover class="nav-item {{ \Illuminate\Support\Facades\Request::is('dashboard/work-orders.substitutes') ? 'is-active' : '' }}" data-action="nav" data-view="team" data-nav="team">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                جانشین‌های من
+            </a>
         @endif
 
         @if(in_array(auth()->user()->role, ['admin', 'manager']))

@@ -242,19 +242,19 @@ final class WorkOrderManageController extends Component
                 $data['assigned_by'] = null;
                 $data['assigned_at'] = null;
 
-                if ($user->role === 'user') {
-                    $data['approval_status'] = 0;
-                    // status = awaiting_approval
-                } else {
+                if ($user->isPrivileged()) {
+
                     $data['approval_status'] = 1;
                     $data['approved_by']     = $user->id;
                     $data['approved_at']     = now();
+                } else {
+
+                    $data['approval_status'] = 0;
                 }
 
                 $wo = WorkOrder::query()->create($data);
                 $this->recordStatusChange($wo, $data['status_id'], 'ایجاد سفارش کار', true);
             }
-
 
             if (! empty($attachments)) {
                 $attachmentService->storeMany($wo, $attachments);
@@ -386,7 +386,9 @@ final class WorkOrderManageController extends Component
             ])
 
             ->when($user->role === 'manager', function ($q) use ($user) {
-                $deptIds = $user->managedDepartments()->pluck('departments.id');
+//                $deptIds = $user->managedDepartments()->pluck('departments.id');
+
+                $deptIds = $user->effectiveManagedDepartmentIds();
 
                 $q->where(function ($qq) use ($deptIds, $user) {
                     $qq->where('created_by', $user->id)
@@ -397,10 +399,31 @@ final class WorkOrderManageController extends Component
                 });
             })
 
+//            ->when($user->role === 'user', function ($q) use ($user) {
+//                $q->where(function ($qq) use ($user) {
+//                    $qq->where('assignee_id', $user->id)
+//                        ->orWhere('created_by', $user->id);
+//                });
+//            })
+
+
             ->when($user->role === 'user', function ($q) use ($user) {
-                $q->where(function ($qq) use ($user) {
-                    $qq->where('assignee_id', $user->id)
-                        ->orWhere('created_by', $user->id);
+                $deptIds       = $user->departments()->pluck('departments.id');
+                $supervisedIds = $user->effectiveSupervisedDepartmentIds();  // ← تغییر
+
+                $q->where(function ($qq) use ($user, $deptIds, $supervisedIds) {
+                    $qq->where('created_by', $user->id)
+                        ->orWhere('assignee_id', $user->id)
+                        ->orWhere('approved_by', $user->id)
+                        ->orWhere('assigned_by', $user->id)
+                        ->orWhere(function ($q2) use ($deptIds) {
+                            $q2->whereIn('department_id', $deptIds)
+                                ->where('approval_status', 1);
+                        })
+                        ->orWhere(function ($q2) use ($supervisedIds) {
+                            $q2->whereIn('department_id', $supervisedIds)
+                                ->where('approval_status', 0);
+                        });
                 });
             })
 
@@ -434,16 +457,22 @@ final class WorkOrderManageController extends Component
     #[Computed]
     public function statusesList(): Collection
     {
+        $user = auth()->user();
+
+        $isPrivileged =
+            in_array($user->role, ['manager', 'admin'], true)
+            || $user->supervisedDepartments()->exists()
+            || $user->managedDepartments()->exists()
+            || $user->effectiveSupervisedDepartmentIds()->isNotEmpty()
+            || $user->effectiveManagedDepartmentIds()->isNotEmpty();
+
         $query = WorkOrderStatus::query()
             ->where('is_active', true)
             ->orderBy('id');
 
-        $user = auth()->user();
-
-        if ($user->role === 'user') {
+        if (! $isPrivileged) {
             $query->where('key', 'awaiting_approval');
-        }
-        elseif (! $this->workOrderId) {
+        } elseif (! $this->workOrderId) {
             $query->whereIn('key', ['draft', 'pending']);
         }
 
