@@ -4,6 +4,7 @@ namespace App\Livewire\Dashboard\WorkOrder;
 
 use App\Models\WorkOrder;
 use App\Models\WorkOrderStatus;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -76,9 +77,49 @@ class WorkOrderApprovalController extends Component
                 ->get(['id', 'name']);
         }
 
-//        return $user->managedDepartments()
-//            ->orderBy('departments.name')
-//            ->get(['departments.id', 'departments.name']);
+        return $user->managedDepartments()
+            ->orderBy('departments.name')
+            ->get(['departments.id', 'departments.name']);
+    }
+
+//    #[Computed]
+//    public function approvableDepartments(): Collection|\Illuminate\Support\Collection
+//    {
+//        $user = auth()->user();
+//
+//        if ($user->role === 'admin') {
+//            return \App\Models\Department::query()
+//                ->where('is_active', true)
+//                ->orderBy('name')
+//                ->get(['id', 'name']);
+//        }
+//
+//        $ids = $user->effectiveSupervisedDepartmentIds()
+//            ->merge($user->effectiveManagedDepartmentIds())
+//            ->unique()
+//            ->values();
+//
+//        if ($ids->isEmpty()) {
+//            return collect();
+//        }
+//
+//        return \App\Models\Department::query()
+//            ->whereIn('id', $ids)
+//            ->where('is_active', true)
+//            ->orderBy('name')
+//            ->get(['id', 'name']);
+//    }
+
+    #[Computed]
+    public function substitutedDeptIds()
+    {
+        $user = auth()->user();
+
+        return $user->substitutedSupervisedDepartments()->pluck('id')
+            ->merge($user->substitutedManagedDepartments()->pluck('id'))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public function openApproveModal(int $id): void
@@ -122,10 +163,9 @@ class WorkOrderApprovalController extends Component
 
             $note = 'تایید توسط مدیر';
 
-            // اگر واحد عوض شد، در تاریخچه توضیح بده
             if ($oldDeptId !== $newDeptId) {
-                $oldName = \App\Models\Department::find($oldDeptId)?->name;
-                $newName = \App\Models\Department::find($newDeptId)?->name;
+                $oldName = \App\Models\Department::query()->find($oldDeptId)?->name;
+                $newName = \App\Models\Department::query()->find($newDeptId)?->name;
                 $note .= " • انتقال از «{$oldName}» به «{$newName}»";
             }
 

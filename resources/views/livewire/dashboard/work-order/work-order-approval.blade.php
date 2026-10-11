@@ -46,7 +46,14 @@
                             </a>
                         </td>
 
-                        <td>{{ $wo->department?->name ?? '—' }}</td>
+                        <td>
+                            {{ $wo->department?->name ?? '—' }}
+                            @if(in_array($wo->department_id, $this->substitutedDeptIds))
+                                <span class="badge badge--orange" style="font-size:10px;margin-inline-start:4px">
+                                    جانشین
+                                </span>
+                            @endif
+                        </td>
 
                         <td>
                             <span class="avatar-stack">
@@ -137,7 +144,7 @@
                                 </select>
                             </div>
                             <small style="color:var(--color-text-2);font-size:11px">
-                                تنها واحدهایی که شما مدیر آن‌ها هستید قابل انتخاب هستند.
+                                واحدهایی که شما سرپرست، مدیر یا جانشین فعال آن‌ها هستید.
                             </small>
                             @error('approveToDepartmentId')
                             <span class="field-error">{{ $message }}</span>

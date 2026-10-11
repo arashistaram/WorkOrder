@@ -74,7 +74,7 @@
             </a>
         @endif
 
-        @if(in_array(auth()->user()->role, ['admin', 'manager']))
+        @if(in_array(auth()->user()->role, ['admin', 'manager']) || auth()->user()->isPrivileged())
             <a href="{{ route('work-orders.approvals') }}" wire:navigate.hover
                class="nav-item {{ request()->is('dashboard/work-orders/approvals') ? 'is-active' : '' }}">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
