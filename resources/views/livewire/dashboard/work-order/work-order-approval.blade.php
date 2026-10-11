@@ -143,9 +143,6 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <small style="color:var(--color-text-2);font-size:11px">
-                                واحدهایی که شما سرپرست، مدیر یا جانشین فعال آن‌ها هستید.
-                            </small>
                             @error('approveToDepartmentId')
                             <span class="field-error">{{ $message }}</span>
                             @enderror

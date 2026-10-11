@@ -70,16 +70,16 @@ class WorkOrderApprovalController extends Component
     {
         $user = auth()->user();
 
-        if (in_array($user->role, ['manager', 'admin'])) {
+        if (in_array($user->role, ['manager', 'admin']) || $user->isPrivileged() === true) {
             return \App\Models\Department::query()
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name']);
         }
 
-        return $user->managedDepartments()
-            ->orderBy('departments.name')
-            ->get(['departments.id', 'departments.name']);
+//        return $user->managedDepartments()
+//            ->orderBy('departments.name')
+//            ->get(['departments.id', 'departments.name']);
     }
 
 //    #[Computed]

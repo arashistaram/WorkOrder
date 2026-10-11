@@ -64,6 +64,10 @@ class WorkOrderPolicy
 
     public function approve(User $user, WorkOrder $workOrder): bool
     {
+        if($user->isPrivileged()){
+            return true;
+        }
+
         if ($user->role === 'admin') {
             return true;
         }
@@ -76,11 +80,12 @@ class WorkOrderPolicy
             return false;
         }
 
-        $isEffectiveSupervisor = $user->isEffectiveSupervisorOf($workOrder->department_id);
-        $isEffectiveManager    = $user->isEffectiveManagerOf($workOrder->department_id);
 
-        return ($isEffectiveSupervisor || $isEffectiveManager)
-            && (int) $workOrder->approval_status === 0;
+//        $isEffectiveSupervisor = $user->isEffectiveSupervisorOf($workOrder->department_id);
+//        $isEffectiveManager    = $user->isEffectiveManagerOf($workOrder->department_id);
+//
+//        return ($isEffectiveSupervisor || $isEffectiveManager)
+//            && (int) $workOrder->approval_status === 0;
 
 //        return $user->managedDepartments()
 //            ->where('departments.id', $workOrder->department_id)
