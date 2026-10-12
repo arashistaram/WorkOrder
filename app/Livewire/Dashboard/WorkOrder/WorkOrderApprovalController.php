@@ -4,7 +4,6 @@ namespace App\Livewire\Dashboard\WorkOrder;
 
 use App\Models\WorkOrder;
 use App\Models\WorkOrderStatus;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;

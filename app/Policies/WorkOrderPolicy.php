@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\WorkOrder;
+use function Symfony\Component\Translation\t;
 
 class WorkOrderPolicy
 {
@@ -18,6 +19,9 @@ class WorkOrderPolicy
             return true;
         }
 
+        if($user->role === 'manager'){
+            return true;
+        }
 
         if ($workOrder->created_by === $user->id) {
             return true;
