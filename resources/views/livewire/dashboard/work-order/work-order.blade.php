@@ -77,13 +77,19 @@
                                     <div class="global-search" style="width:100%">
                                         <select wire:model="department_id">
                                             <option value="">انتخاب کنید</option>
+
+                                            @php
+                                                $user          = auth()->user();
+                                                $isPrivileged  = $user->isPrivileged();
+                                                $userDeptId    = $user->departments->first()?->id;
+                                            @endphp
+
                                             @foreach($this->departmentsList as $d)
-                                                @if(auth()->user()->departments[0]->id === $d->id)
-                                                    <option value="{{ $d->id }}">{{ $d->name }}</option>
-                                                @elseif(auth()->user()->role === 'manager' || auth()->user()->isPrivileged())
+                                                @if($userDeptId === $d->id || $isPrivileged)
                                                     <option value="{{ $d->id }}">{{ $d->name }}</option>
                                                 @endif
                                             @endforeach
+
                                         </select>
                                     </div>
                                     @error('department_id') <span class="field-error">{{ $message }}</span> @enderror
@@ -462,28 +468,42 @@
                     </thead>
 
                     <tbody>
+
                     @forelse ($this->workOrders as $wo)
-                        <tr wire:key="wo-{{ $wo->id }}">
+
+                        <tr wire:key="wo-{{ $wo->id }}" @if($wo->approval_stage === 'pending_admin' && auth()->user()->role !== 'admin') style="opacity: 0.5;" @endif>
 
                             <td class="cell-check">
                                 <input type="checkbox" class="checkbox"
                                        aria-label="انتخاب {{ $wo->code }}">
                             </td>
 
-                            <td class="cell-wo" data-label="کد">
-                                <a href="{{ route('work-orders.detail', $wo->id) }}"
-                                   wire:navigate.hover
-                                   class="wo-link" style="direction:ltr">
-                                    {{ $wo->code }}
-                                </a>
-                            </td>
+                            @if(auth()->user()->role === 'admin' && $wo->approval_stage === 'pending_admin')
+                                <td class="cell-wo" data-label="کد">
+                                    <a href="{{ route('work-orders.detail', $wo->id) }}"
+                                       wire:navigate.hover
+                                       class="wo-link" style="direction:ltr">
+                                        {{ $wo->code }}
+                                    </a>
+                                </td>
+                            @endif
+
+                            @if($wo->approval_stage !== 'pending_admin' && auth()->user()->role != 'admin')
+                                <td class="cell-wo" data-label="کد">
+                                    <a href="{{ route('work-orders.detail', $wo->id) }}"
+                                       wire:navigate.hover
+                                       class="wo-link" style="direction:ltr">
+                                        {{ $wo->code }}
+                                    </a>
+                                </td>
+                            @endif
 
                             <td class="cell-title" data-label="عنوان">
                                 <span class="title-text">{{ $wo->title }}</span>
                                 @if($wo->is_overdue)
                                     <span class="badge badge--danger" style="margin-inline-start:6px;font-size:10px">
-                                        عقب‌افتاده
-                                    </span>
+                                    عقب‌افتاده
+                                </span>
                                 @endif
                             </td>
 
@@ -495,11 +515,11 @@
 
                                 @if($wo->assignee)
                                     <span class="avatar-stack">
-                                        <span class="avatar avatar--sm avatar--blue">
-                                            {{ getInitials($wo->assignee->name, '') }}
-                                        </span>
-                                        <span class="name">{{ $wo->assignee->name }}</span>
+                                    <span class="avatar avatar--sm avatar--blue">
+                                        {{ getInitials($wo->assignee->name, '') }}
                                     </span>
+                                    <span class="name">{{ $wo->assignee->name }}</span>
+                                </span>
                                 @else
                                     <span style="color:var(--color-text-2)">—</span>
                                 @endif
@@ -508,34 +528,35 @@
                             <td data-label="اولویت">
                                 @if($wo->priority)
                                     <span class="badge {{ $wo->priority->badge_class }}">
-                                        <span class="badge__dot"></span>
-                                        {{ $wo->priority->label }}
-                                    </span>
+                                    <span class="badge__dot"></span>
+                                    {{ $wo->priority->label }}
+                                </span>
                                 @endif
                             </td>
 
                             <td data-label="وضعیت">
                                 @if($wo->status)
                                     <span class="badge {{ $wo->status->badge_class }}">
-                                        <span class="badge__dot"></span>
-                                        {{ $wo->status->label }}
-                                    </span>
+                                    <span class="badge__dot"></span>
+                                    {{ $wo->status->label }}
+                                </span>
                                 @endif
                             </td>
 
                             <td data-label="تایید">
                                 @if($wo->is_pending_approval)
                                     <span class="badge badge--orange">
-                                        <span class="badge__dot"></span>در انتظار تایید
-                                    </span>
-                                                            @elseif($wo->is_approved)
-                                                                <span class="badge badge--success">
-                                        <span class="badge__dot"></span>تایید شده
-                                    </span>
-                                                            @else
-                                                                <span class="badge badge--danger">
-                                        <span class="badge__dot"></span>رد شده
-                                    </span>
+                                    <span class="badge__dot"></span>در انتظار تایید
+                                    @if($wo->approval_stage === 'pending_admin') <span>ادمین</span> @endif
+                                </span>
+                                @elseif($wo->is_approved)
+                                    <span class="badge badge--success">
+                                    <span class="badge__dot"></span>تایید شده
+                                </span>
+                                @else
+                                    <span class="badge badge--danger">
+                                    <span class="badge__dot"></span>رد شده
+                                </span>
                                 @endif
                             </td>
 
@@ -554,91 +575,96 @@
 
                             <td class="cell-actions"
                                 x-data="{
-                                    open: false, x: 0, y: 0,
-                                    toggle() {
-                                        const r = $refs.trigger.getBoundingClientRect();
-                                        const menuW = 180, menuH = 200;
-                                        let left = r.right - menuW;
-                                        if (left < 8) left = 8;
-                                        let top = r.bottom + 6;
-                                        if (top + menuH > window.innerHeight) {
-                                            top = r.top - menuH - 6;
-                                            if (top < 8) top = 8;
-                                        }
-                                        this.x = left; this.y = top;
-                                        this.open = !this.open;
+                                open: false, x: 0, y: 0,
+                                toggle() {
+                                    const r = $refs.trigger.getBoundingClientRect();
+                                    const menuW = 180, menuH = 200;
+                                    let left = r.right - menuW;
+                                    if (left < 8) left = 8;
+                                    let top = r.bottom + 6;
+                                    if (top + menuH > window.innerHeight) {
+                                        top = r.top - menuH - 6;
+                                        if (top < 8) top = 8;
                                     }
-                                }">
+                                    this.x = left; this.y = top;
+                                    this.open = !this.open;
+                                }
+                            }">
 
-                                <button x-ref="trigger"
-                                        class="icon-btn icon-btn--sm"
-                                        type="button"
-                                        @click.stop="toggle()"
-                                        :aria-expanded="open"
-                                        aria-haspopup="menu">
-                                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                        <circle cx="5" cy="12" r="1.4"/>
-                                        <circle cx="12" cy="12" r="1.4"/>
-                                        <circle cx="19" cy="12" r="1.4"/>
-                                    </svg>
-                                </button>
+                                @if($wo->approval_stage != 'pending_admin')
 
-                                <template x-teleport="body">
-                                    <div class="row-menu"
-                                         x-show="open"
-                                         x-cloak
-                                         x-transition.opacity.duration.120ms
-                                         :style="`top:${y}px; left:${x}px;`"
-                                         role="menu"
-                                         @click.outside="open = false"
-                                         @keydown.escape.window="open = false">
+                                    <button x-ref="trigger"
+                                            class="icon-btn icon-btn--sm"
+                                            type="button"
+                                            @click.stop="toggle()"
+                                            :aria-expanded="open"
+                                            aria-haspopup="menu">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <circle cx="5" cy="12" r="1.4"/>
+                                            <circle cx="12" cy="12" r="1.4"/>
+                                            <circle cx="19" cy="12" r="1.4"/>
+                                        </svg>
+                                    </button>
 
-                                        <a href="{{ route('work-orders.detail', $wo->id) }}"
-                                           wire:navigate.hover
-                                           class="row-menu__item"
-                                           role="menuitem"
-                                           @click="open = false">
-                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
-                                                <circle cx="12" cy="12" r="3"/>
-                                            </svg>
-                                            جزئیات
-                                        </a>
+                                    <template x-teleport="body">
+                                        <div class="row-menu"
+                                             x-show="open"
+                                             x-cloak
+                                             x-transition.opacity.duration.120ms
+                                             :style="`top:${y}px; left:${x}px;`"
+                                             role="menu"
+                                             @click.outside="open = false"
+                                             @keydown.escape.window="open = false">
 
-                                        @if(auth()->user()->role !== 'user')
-                                            <button class="row-menu__item"
-                                                    type="button"
-                                                    role="menuitem"
-                                                    @click="open = false"
-                                                    wire:click="open({{ $wo->id }})">
+                                            <a href="{{ route('work-orders.detail', $wo->id) }}"
+                                               wire:navigate.hover
+                                               class="row-menu__item"
+                                               role="menuitem"
+                                               @click="open = false">
                                                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M12 20h9"/>
-                                                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+                                                    <circle cx="12" cy="12" r="3"/>
                                                 </svg>
-                                                ویرایش
-                                            </button>
+                                                جزئیات
+                                            </a>
 
-                                            <div class="row-menu__divider"></div>
+                                            @if(auth()->user()->role !== 'user')
+                                                <button class="row-menu__item"
+                                                        type="button"
+                                                        role="menuitem"
+                                                        @click="open = false"
+                                                        wire:click="open({{ $wo->id }})">
+                                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M12 20h9"/>
+                                                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
+                                                    </svg>
+                                                    ویرایش
+                                                </button>
 
-                                            <button class="row-menu__item row-menu__item--danger"
-                                                    type="button"
-                                                    role="menuitem"
-                                                    @click="open = false"
-                                                    wire:click="delete({{ $wo->id }})"
-                                                    wire:confirm="از حذف این سفارش کار مطمئن هستید؟">
-                                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M3 6h18"/>
-                                                    <path d="M8 6V4h8v2"/>
-                                                    <path d="M6 6l1 14h10l1-14"/>
-                                                </svg>
-                                                حذف
-                                            </button>
-                                        @endif
-                                    </div>
-                                </template>
+                                                <div class="row-menu__divider"></div>
+
+                                                <button class="row-menu__item row-menu__item--danger"
+                                                        type="button"
+                                                        role="menuitem"
+                                                        @click="open = false"
+                                                        wire:click="delete({{ $wo->id }})"
+                                                        wire:confirm="از حذف این سفارش کار مطمئن هستید؟">
+                                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M3 6h18"/>
+                                                        <path d="M8 6V4h8v2"/>
+                                                        <path d="M6 6l1 14h10l1-14"/>
+                                                    </svg>
+                                                    حذف
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </template>
+
+                                @endif
                             </td>
 
                         </tr>
+
                     @empty
                         <tr>
                             <td colspan="10" class="p-4" style="text-align: center">

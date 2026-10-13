@@ -85,6 +85,10 @@ class WorkOrderPolicy
         }
 
 
+        if ($workOrder->is_approved && $user->isMemberOf($workOrder->department_id)) {
+            return true;
+        }
+
 //        $isEffectiveSupervisor = $user->isEffectiveSupervisorOf($workOrder->department_id);
 //        $isEffectiveManager    = $user->isEffectiveManagerOf($workOrder->department_id);
 //
@@ -94,6 +98,21 @@ class WorkOrderPolicy
 //        return $user->managedDepartments()
 //            ->where('departments.id', $workOrder->department_id)
 //            ->exists();
+
+        return false;
+    }
+
+    public function approveAsManager(User $user, WorkOrder $wo): bool
+    {
+        if (! $wo->is_pending_manager) return false;
+
+        return $user->isEffectiveManagerOf($wo->department_id)
+            || $user->isEffectiveSupervisorOf($wo->department_id);
+    }
+
+    public function approveAsAdmin(User $user, WorkOrder $wo): bool
+    {
+        return $wo->is_pending_admin && $user->isAdmin();
     }
 
     public function create(User $user): bool
@@ -141,7 +160,11 @@ class WorkOrderPolicy
                 ->exists();
         }
 
-        return false;
+        if (! $workOrder->is_approved) return false;
+
+        return $workOrder->manager_approved_by === $user->id
+            || $user->isAdmin();
+
     }
 
 
@@ -161,7 +184,12 @@ class WorkOrderPolicy
                 ->exists();
         }
 
-        return false;
+        if (! $workOrder->is_approved) return false;
+
+
+        return $workOrder->assignee_id === $user->id
+            || $workOrder->manager_approved_by === $user->id
+            || $user->isAdmin();
     }
 
     public function manageChecklist(User $user, WorkOrder $workOrder): bool
@@ -184,7 +212,11 @@ class WorkOrderPolicy
                 ->exists();
         }
 
-        return false;
+        if (! $workOrder->is_approved) return false;
+
+        return $workOrder->assignee_id === $user->id
+            || $workOrder->manager_approved_by === $user->id
+            || $user->isAdmin();
     }
 
     public function updateActualHours(User $user, WorkOrder $workOrder): bool

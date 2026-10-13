@@ -8,6 +8,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkOrderPriority;
 use App\Models\WorkOrderStatus;
 use App\Services\WorkOrderAttachmentService;
+use Illuminate\Auth\Access\Gate;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -224,9 +225,11 @@ final class WorkOrderManageController extends Component
         unset($data['due_year'], $data['due_month'], $data['due_day']);
 
         $user = auth()->user();
+
         DB::transaction(function () use ($attachmentService, $data, $attachments, $user) {
 
             if ($this->workOrderId) {
+                // ═══════════ حالت ویرایش ═══════════
                 $wo = WorkOrder::query()->findOrFail($this->workOrderId);
 
                 if ((int) $wo->status_id !== (int) $data['status_id']) {
@@ -234,7 +237,9 @@ final class WorkOrderManageController extends Component
                 }
 
                 $wo->update($data);
+
             } else {
+                // ═══════════ حالت ایجاد ═══════════
                 $data['code']       = WorkOrder::generateCode();
                 $data['created_by'] = auth()->id();
 
@@ -242,15 +247,20 @@ final class WorkOrderManageController extends Component
                 $data['assigned_by'] = null;
                 $data['assigned_at'] = null;
 
-                if ($user->isPrivileged()) {
+                // ✅ همه سفارش‌ها (چه کاربر عادی چه سرپرست/مدیر)
+                //    با pending_manager شروع می‌شوند تا سرپرست واحد
+                //    مقصد تصمیم بگیرد که نیاز به مدیرعامل دارد یا نه.
+                $data['approval_stage']       = WorkOrder::STAGE_PENDING_MANAGER;
+                $data['approval_status']      = 0;
+                $data['needs_admin_approval'] = false;
 
-                    $data['approval_status'] = 1;
-                    $data['approved_by']     = $user->id;
-                    $data['approved_at']     = now();
-                } else {
-
-                    $data['approval_status'] = 0;
-                }
+                // فیلدهای تایید خالی می‌مانند
+                $data['manager_approved_by'] = null;
+                $data['manager_approved_at'] = null;
+                $data['admin_approved_by']   = null;
+                $data['admin_approved_at']   = null;
+                $data['approved_by']         = null;
+                $data['approved_at']         = null;
 
                 $wo = WorkOrder::query()->create($data);
                 $this->recordStatusChange($wo, $data['status_id'], 'ایجاد سفارش کار', true);
@@ -264,9 +274,9 @@ final class WorkOrderManageController extends Component
         $this->reset('newAttachments');
         $this->close();
 
-        $message = $user->role === 'user'
-            ? 'سفارش کار ثبت شد و در انتظار تایید مدیر است.'
-            : 'سفارش کار با موفقیت ذخیره شد.';
+        $message = $user->isPrivileged()
+            ? 'سفارش کار ثبت شد و برای تایید به سرپرست واحد مقصد ارسال شد.'
+            : 'سفارش کار ثبت شد و در انتظار تایید مدیر واحد است.';
 
         LivewireAlert::title('موفق')->text($message)
             ->success()->timer(3000)->show();
@@ -385,6 +395,12 @@ final class WorkOrderManageController extends Component
                 'checklistItems as checklist_done' => fn($q) => $q->where('is_done', true),
             ])
 
+            ->when($user->role === 'admin', function ($q) use ($user) {
+                $q->where(function ($qq) use ($user) {
+                    $qq->where('approval_stage', WorkOrder::STAGE_PENDING_ADMIN);
+                });
+            })
+
             ->when($user->role === 'manager', function ($q) use ($user) {
 //                $deptIds = $user->managedDepartments()->pluck('departments.id');
 
@@ -392,10 +408,11 @@ final class WorkOrderManageController extends Component
 
                 $q->where(function ($qq) use ($deptIds, $user) {
                     $qq->where('created_by', $user->id)
-                    ->orWhere('assignee_id', $user->id)
-                    ->orWhere('approved_by', $user->id)
-                    ->orWhere('assigned_by', $user->id)
-                    ->orWhereIn('department_id', $deptIds);
+                        ->orWhere('assignee_id', $user->id)
+                        ->orWhere('manager_approved_by', $user->id)
+                        ->orWhere('approved_by', $user->id)
+                        ->orWhere('assigned_by', $user->id)
+                        ->orWhereIn('department_id', $deptIds);
                 });
             })
 
@@ -405,6 +422,8 @@ final class WorkOrderManageController extends Component
 //                        ->orWhere('created_by', $user->id);
 //                });
 //            })
+
+
 
 
             ->when($user->role === 'user', function ($q) use ($user) {
@@ -418,7 +437,8 @@ final class WorkOrderManageController extends Component
                         ->orWhere('assigned_by', $user->id)
                         ->orWhere(function ($q2) use ($deptIds) {
                             $q2->whereIn('department_id', $deptIds)
-                                ->where('approval_status', 1);
+//                                ->where('approval_status', 1);
+                                ->where('approval_stage', WorkOrder::STAGE_APPROVED);
                         })
                         ->orWhere(function ($q2) use ($supervisedIds) {
                             $q2->whereIn('department_id', $supervisedIds)
@@ -442,6 +462,47 @@ final class WorkOrderManageController extends Component
             ->when($this->overdueFilter === '1', fn($q) => $q->overdue())
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(15);
+    }
+
+
+    public function approveAsAdmin(): void
+    {
+        $wo = $this->workOrder;
+
+        Gate::authorize('approveAsAdmin', $wo);
+
+        DB::transaction(function () use ($wo) {
+            $user = auth()->user();
+
+            $readyStatusId = WorkOrderStatus::query()
+                ->where('key', 'in_progress')->value('id')
+                ?? WorkOrderStatus::query()->where('key', 'pending')->value('id')
+                ?? $wo->status_id;
+
+            $wo->statusHistories()->create([
+                'from_status_id' => $wo->status_id,
+                'to_status_id'   => $readyStatusId,
+                'changed_by'     => $user->id,
+                'note'           => 'تایید نهایی توسط مدیرعامل (صفحه جزئیات)',
+                'created_at'     => now(),
+            ]);
+
+            $wo->update([
+                'approval_stage'    => WorkOrder::STAGE_APPROVED,
+                'approval_status'   => 1,
+                'approved_by'       => $user->id,
+                'approved_at'       => now(),
+                'admin_approved_by' => $user->id,
+                'admin_approved_at' => now(),
+                'status_id'         => $readyStatusId,
+            ]);
+        });
+
+        $this->refreshWorkOrder();
+
+        LivewireAlert::title('تایید شد')
+            ->text('سفارش نهایی شد و آماده تخصیص توسط مدیر واحد است.')
+            ->success()->timer(4000)->show();
     }
 
     #[Computed]

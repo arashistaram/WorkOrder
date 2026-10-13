@@ -13,28 +13,42 @@ class WorkOrder extends Model
 {
     use SoftDeletes;
 
+    const string STAGE_PENDING_MANAGER = 'pending_manager';
+    const string STAGE_PENDING_ADMIN   = 'pending_admin';
+    const string STAGE_APPROVED        = 'approved';
+    const string STAGE_REJECTED        = 'rejected';
+
+
     protected $fillable = [
         'code', 'title', 'description',
         'department_id', 'assignee_id', 'assigned_by', 'assigned_at',
-        'status_id', 'priority_id', 'created_by',
-        'approval_status', 'approved_by', 'approved_at',
-        'rejected_at', 'rejection_reason',
+        'status_id', 'priority_id',
+        'approval_status', 'approval_stage', 'needs_admin_approval',
+        'created_by',
         'due_date', 'started_at', 'completed_at', 'cancelled_at',
-        'estimated_hours', 'actual_hours', 'metadata',
+        'estimated_hours', 'actual_hours',
+        'approved_by', 'approved_at',
+        'manager_approved_by', 'manager_approved_at',
+        'admin_approved_by', 'admin_approved_at',
+        'rejected_at', 'rejection_reason',
+        'metadata',
     ];
 
     protected $casts = [
-        'assigned_at'   => 'datetime',
-        'started_at'    => 'datetime',
-        'completed_at'  => 'datetime',
-        'cancelled_at'  => 'datetime',
-        'due_date'      => 'date',
-        'metadata'      => 'array',
-        'estimated_hours' => 'decimal:2',
-        'actual_hours'    => 'decimal:2',
-        'approval_status' => 'integer',
-        'approved_at'     => 'datetime',
-        'rejected_at'     => 'datetime',
+        'approval_status'      => 'int',
+        'needs_admin_approval' => 'bool',
+        'assigned_at'          => 'datetime',
+        'approved_at'          => 'datetime',
+        'manager_approved_at'  => 'datetime',
+        'admin_approved_at'    => 'datetime',
+        'rejected_at'          => 'datetime',
+        'started_at'           => 'datetime',
+        'completed_at'         => 'datetime',
+        'cancelled_at'         => 'datetime',
+        'due_date'             => 'date',
+        'metadata'             => 'array',
+        'estimated_hours'      => 'float',
+        'actual_hours'         => 'float',
     ];
 
     public function department(): BelongsTo {
@@ -53,6 +67,14 @@ class WorkOrder extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function managerApprovedBy(): BelongsTo {
+        return $this->belongsTo(User::class, 'manager_approved_by');
+    }
+
+    public function adminApprovedBy(): BelongsTo {
+        return $this->belongsTo(User::class, 'admin_approved_by');
     }
 
     public function status(): BelongsTo {
@@ -121,14 +143,46 @@ class WorkOrder extends Model
 
     public function scopeOverdue(Builder $q): Builder
     {
-        return $q->active()->whereDate('due_date', '<', now()->toDateString());
+        return $q->whereNotNull('due_date')
+            ->whereNull('completed_at')
+            ->where('due_date', '<', now()->toDateString());
+    }
+
+    public function getIsPendingManagerAttribute(): bool
+    {
+        return $this->approval_stage === self::STAGE_PENDING_MANAGER;
+    }
+
+    public function getIsPendingAdminAttribute(): bool
+    {
+        return $this->approval_stage === self::STAGE_PENDING_ADMIN;
+    }
+
+    public function getIsApprovedAttribute(): bool
+    {
+        return $this->approval_stage === self::STAGE_APPROVED;
+    }
+
+    public function getIsRejectedAttribute(): bool
+    {
+        return $this->approval_stage === self::STAGE_REJECTED;
+    }
+
+    public function getIsPendingApprovalAttribute(): bool
+    {
+        return in_array($this->approval_stage, [
+            self::STAGE_PENDING_MANAGER,
+            self::STAGE_PENDING_ADMIN,
+        ], true);
     }
 
     public function getProgressAttribute(): int
     {
-        $total = $this->checklistItems->count();
+        $total = $this->checklist_total ?? $this->checklistItems()->count();
         if ($total === 0) return 0;
-        $done = $this->checklistItems->where('is_done', true)->count();
+
+        $done = $this->checklist_done ?? $this->checklistItems()->where('is_done', true)->count();
+
         return (int) round(($done / $total) * 100);
     }
 
@@ -142,15 +196,14 @@ class WorkOrder extends Model
 
     public static function generateCode(): string
     {
-        $year  = verta()->format('Y');
-        $count = static::withTrashed()->whereYear('created_at', now()->year)->count() + 1;
+        $prefix = 'WO-' . verta()->format('Ymd');
+        $last = static::withTrashed()
+            ->where('code', 'like', $prefix . '%')
+            ->orderByDesc('id')
+            ->value('code');
 
-        do {
-            $code = sprintf('WO-%s-%04d', $year, $count);
-            $count++;
-        } while (static::withTrashed()->where('code', $code)->exists());
-
-        return $code;
+        $seq = $last ? ((int) substr($last, -4)) + 1 : 1;
+        return $prefix . '-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 
     public function attachments(): HasMany
@@ -163,20 +216,6 @@ class WorkOrder extends Model
         return $this->hasMany(WorkOrderAttachment::class)
             ->whereNotNull('status_history_id')
             ->latest();
-    }
-    public function getIsPendingApprovalAttribute(): bool
-    {
-        return $this->approval_status === 0;
-    }
-
-    public function getIsApprovedAttribute(): bool
-    {
-        return $this->approval_status === 1;
-    }
-
-    public function getIsRejectedAttribute(): bool
-    {
-        return $this->approval_status === 2;
     }
 
     public function getApprovalLabelAttribute(): string

@@ -2,7 +2,16 @@
     <div class="sidebar-brand">
         <span class="brand-mark" aria-hidden="true">ایسترم</span>
         <span class="brand-name">سفارش کار</span>
-        <button class="icon-btn icon-btn--sm sidebar-toggle" data-action="toggle-sidebar" aria-label="بستن ناوبری" style="display:none" id="sidebar-close"></button>
+        <button type="button"
+                class="icon-btn icon-btn--sm sidebar-toggle"
+                data-action="toggle-sidebar"
+                aria-label="بستن ناوبری"
+                id="sidebar-close">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+        </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -85,6 +94,7 @@
                 @php
                     $pendingCount = \App\Models\WorkOrder::query()
                         ->where('approval_status', 0)
+                        ->where('approval_stage', '!=', 'pending_admin')
                         ->when(auth()->user()->role === 'manager', function ($q) {
                             $deptIds = auth()->user()->managedDepartments()->pluck('departments.id');
                             $q->whereIn('department_id', $deptIds);
@@ -110,26 +120,43 @@
 
     <div class="sidebar-footer">
 
-        <div class="workspace-switcher-wrap">
+        <div class="workspace-switcher-wrap"
+             x-data="{ open: false }"
+             @click.outside="open = false"
+             @keydown.escape.window="open = false">
+
             <button
                 type="button"
                 class="workspace-switcher"
-                data-action="toggle-ws-menu"
+                @click="open = !open"
+                :aria-expanded="open"
                 aria-haspopup="true"
-                aria-expanded="false"
             >
-                <span class="ws-mark" aria-hidden="true">{{ getInitials(auth()->user()->name) }}</span>
+            <span class="ws-mark" aria-hidden="true">
+                {{ getInitials(auth()->user()->name) }}
+            </span>
                 <span class="ws-text">
                 <span class="ws-name">{{ auth()->user()->name }}</span>
                 <span class="ws-plan">{{ auth()->user()->job_title }}</span>
             </span>
                 <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                     stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true"
+                     :style="open ? 'transform: rotate(180deg)' : ''">
                     <path d="m6 9 6 6 6-6"/>
                 </svg>
             </button>
 
-            <div class="ws-menu" hidden>
+            <div class="ws-menu"
+                 x-show="open"
+                 x-cloak
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 translate-y-1"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 translate-y-1">
+
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="ws-menu__item ws-menu__item--danger">
@@ -151,49 +178,63 @@
 @section('script')
     <script>
         (() => {
-            if (window.__wsMenuBound) return;
-            window.__wsMenuBound = true;
+            const getSidebar   = () => document.getElementById('sidebar');
+            const getBackdrop  = () => document.getElementById('sidebar-backdrop');
+            const getHamburger = () => document.querySelector('.topbar-hamburger');
 
-            const closeAll = (except = null) => {
-                document.querySelectorAll('.ws-menu:not([hidden])').forEach((m) => {
-                    if (m === except) return;
-                    m.setAttribute('hidden', '');
-                    m.closest('.workspace-switcher-wrap')
-                        ?.querySelector('[aria-expanded]')
-                        ?.setAttribute('aria-expanded', 'false');
-                });
+            const open = () => {
+                const sidebar = getSidebar();
+                if (!sidebar) return;
+                sidebar.classList.add('is-open');
+                getBackdrop()?.classList.add('is-visible');
+                document.body.classList.add('sidebar-open');
+                getHamburger()?.setAttribute('aria-expanded', 'true');
             };
 
-            document.addEventListener('click', (e) => {
-                const toggle = e.target.closest('[data-action="toggle-ws-menu"]');
+            const close = () => {
+                const sidebar = getSidebar();
+                if (!sidebar) return;
+                sidebar.classList.remove('is-open');
+                getBackdrop()?.classList.remove('is-visible');
+                document.body.classList.remove('sidebar-open');
+                getHamburger()?.setAttribute('aria-expanded', 'false');
+            };
 
-                if (toggle) {
-                    const wrap = toggle.closest('.workspace-switcher-wrap');
-                    const menu = wrap?.querySelector('.ws-menu');
-                    if (!menu) return;
+            const toggle = () => {
+                const sidebar = getSidebar();
+                if (!sidebar) return;
+                sidebar.classList.contains('is-open') ? close() : open();
+            };
 
-                    const isOpen = !menu.hasAttribute('hidden');
+            if (!window.__sidebarBound) {
+                window.__sidebarBound = true;
 
-                    closeAll(menu); // بقیه منوها را ببند
-
-                    if (isOpen) {
-                        menu.setAttribute('hidden', '');
-                        toggle.setAttribute('aria-expanded', 'false');
-                    } else {
-                        menu.removeAttribute('hidden');
-                        toggle.setAttribute('aria-expanded', 'true');
+                document.addEventListener('click', (e) => {
+                    const btn = e.target.closest('[data-action="toggle-sidebar"]');
+                    if (btn) {
+                        e.preventDefault();
+                        toggle();
+                        return;
                     }
-                    return;
-                }
+                    if (e.target.closest('#sidebar-backdrop')) {
+                        close();
+                        return;
+                    }
+                    const link = e.target.closest('#sidebar a.nav-item');
+                    if (link && window.innerWidth < 1024) close();
+                });
 
-                if (!e.target.closest('.ws-menu')) {
-                    closeAll();
-                }
-            });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') close();
+                });
 
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeAll();
-            });
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth >= 1024) close();
+                });
+            }
+
+            document.addEventListener('livewire:navigated', close);
+            document.addEventListener('livewire:navigate', close);
         })();
     </script>
 @endsection

@@ -106,6 +106,8 @@ class WorkOrderDetailController extends Component
             'update'            => $user->can('update', $wo),
             'delete'            => $user->can('delete', $wo),
             'approve'           => $user->can('approve', $wo),
+            'approveAsManager' => $user->can('approveAsManager', $wo),
+            'approveAsAdmin'   => $user->can('approveAsAdmin', $wo),
         ];
     }
     public function statusesList()
@@ -125,6 +127,45 @@ class WorkOrderDetailController extends Component
             ->get(['id', 'name', 'username']);
     }
 
+    public function approveAsAdmin(): void
+    {
+        $wo = $this->workOrder;
+
+        Gate::authorize('approveAsAdmin', $wo);
+
+        DB::transaction(function () use ($wo) {
+            $user = auth()->user();
+
+            $readyStatusId = WorkOrderStatus::query()
+                ->where('key', 'in_progress')->value('id')
+                ?? WorkOrderStatus::query()->where('key', 'pending')->value('id')
+                ?? $wo->status_id;
+
+            $wo->statusHistories()->create([
+                'from_status_id' => $wo->status_id,
+                'to_status_id'   => $readyStatusId,
+                'changed_by'     => $user->id,
+                'note'           => 'تایید نهایی توسط مدیرعامل',
+                'created_at'     => now(),
+            ]);
+
+            $wo->update([
+                'approval_stage'    => WorkOrder::STAGE_APPROVED,
+                'approval_status'   => 1,
+                'approved_by'       => $user->id,
+                'approved_at'       => now(),
+                'admin_approved_by' => $user->id,
+                'admin_approved_at' => now(),
+                'status_id'         => $readyStatusId,
+            ]);
+        });
+
+        $this->refreshWorkOrder();
+
+        LivewireAlert::title('تایید شد')
+            ->text('سفارش نهایی شد و آماده تخصیص توسط مدیر واحد است.')
+            ->success()->timer(4000)->show();
+    }
     #[Computed]
     public function departmentsList(): Collection
     {
@@ -369,7 +410,7 @@ class WorkOrderDetailController extends Component
         $this->closeStatusModal();
 
         LivewireAlert::title('موفق')->text('وضعیت تغییر کرد.')
-            ->success()->timer(3000)->show();
+            ->success()->timer(5000)->show();
 
         $this->notifyStatusChange();
     }
@@ -500,6 +541,9 @@ class WorkOrderDetailController extends Component
             ->success()->timer(2000)->show();
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function approve(): void
     {
         Gate::authorize('approve', $this->workOrder);
@@ -532,33 +576,51 @@ class WorkOrderDetailController extends Component
             ->success()->timer(2500)->show();
     }
 
+    public function closeRejectModal(): void
+    {
+        $this->showRejectModal = false;
+        $this->rejectionReason = '';
+        $this->resetValidation();
+    }
+
     public function reject(): void
     {
-        Gate::authorize('approve', $this->workOrder);
-
         $this->validate([
             'rejectionReason' => 'required|string|max:1000',
         ], [
             'rejectionReason.required' => 'دلیل رد را وارد کنید.',
         ]);
 
-        DB::transaction(function () {
-            $wo = $this->workOrder;
+        $wo = $this->workOrder;
+
+        abort_unless(
+            auth()->user()->can('approveAsManager', $wo)
+            || auth()->user()->can('approveAsAdmin', $wo),
+            403
+        );
+
+        DB::transaction(function () use ($wo) {
+            $user = auth()->user();
 
             $rejectedStatusId = WorkOrderStatus::query()
                 ->where('key', 'rejected')->value('id');
 
+            $stageLabel = $wo->is_pending_manager
+                ? 'رد توسط مدیر واحد'
+                : 'رد توسط مدیرعامل';
+
             $wo->statusHistories()->create([
                 'from_status_id' => $wo->status_id,
                 'to_status_id'   => $rejectedStatusId,
-                'changed_by'     => auth()->id(),
-                'note'           => 'رد شده: ' . $this->rejectionReason,
+                'changed_by'     => $user->id,
+                'note'           => "{$stageLabel}: {$this->rejectionReason}",
                 'created_at'     => now(),
             ]);
 
             $wo->update([
+                'approval_stage'   => WorkOrder::STAGE_REJECTED,
                 'approval_status'  => 2,
-                'approved_by'      => auth()->id(),
+                'approved_by'      => $user->id,
                 'rejected_at'      => now(),
                 'rejection_reason' => $this->rejectionReason,
                 'status_id'        => $rejectedStatusId,
@@ -568,8 +630,9 @@ class WorkOrderDetailController extends Component
         $this->closeRejectModal();
         $this->refreshWorkOrder();
 
-        LivewireAlert::title('رد شد')->text('سفارش رد شد.')
-            ->success()->timer(2500)->show();
+        LivewireAlert::title('رد شد')
+            ->text('سفارش کار رد شد.')
+            ->success()->timer(5000)->show();
     }
     public function render(): View|Factory|\Illuminate\View\View
     {

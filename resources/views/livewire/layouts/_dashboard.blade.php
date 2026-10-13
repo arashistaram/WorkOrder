@@ -1202,6 +1202,7 @@
 
     <div class="sidebar-scrim" id="sidebar-scrim" data-action="toggle-sidebar"></div>
 
+
     <div class="main">
         @include('livewire.layouts.includes.dashboard.topbar')
         {{ $slot }}

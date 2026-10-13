@@ -24,6 +24,9 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    protected ?bool $cachedIsPrivileged = null;
+    protected ?\Illuminate\Support\Collection $cachedManagedIds = null;
+
     protected $casts = [
         'last_login_at'     => 'datetime',
         'is_active'         => 'bool',
@@ -93,6 +96,16 @@ class User extends Authenticatable
             ->exists();
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
     public function activeDepartments(): BelongsToMany
     {
         return $this->departments()->wherePivot('is_active', true);
@@ -149,7 +162,8 @@ class User extends Authenticatable
 
     public function effectiveManagedDepartmentIds(): \Illuminate\Support\Collection
     {
-        return $this->managedDepartments()->pluck('departments.id')
+        return $this->cachedManagedIds ??= $this->managedDepartments()
+            ->pluck('departments.id')
             ->merge($this->substitutedManagedDepartments()->pluck('id'))
             ->unique()
             ->values();
@@ -175,11 +189,18 @@ class User extends Authenticatable
 
     public function isPrivileged(): bool
     {
-        return in_array($this->role, ['manager', 'admin'], true)
+        if ($this->cachedIsPrivileged !== null) {
+            return $this->cachedIsPrivileged;
+        }
+
+        $this->cachedIsPrivileged =
+            in_array($this->role, ['manager', 'admin'], true)
             || $this->supervisedDepartments()->exists()
             || $this->managedDepartments()->exists()
             || $this->effectiveSupervisedDepartmentIds()->isNotEmpty()
             || $this->effectiveManagedDepartmentIds()->isNotEmpty();
+
+        return $this->cachedIsPrivileged;
     }
 
 }

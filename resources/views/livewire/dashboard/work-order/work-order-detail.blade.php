@@ -43,61 +43,70 @@
                 بازگشت
             </a>
 
-            {{-- ✅ دکمه تخصیص --}}
-            @if($can['assign'])
-                <button wire:click="openAssignModal" class="btn btn--primary">
-                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                    </svg>
-                    {{ $wo->assignee_id ? 'تغییر مسئول' : 'تخصیص کاربر' }}
-                </button>
-            @else
-                <button class="btn btn--primary" disabled
-                        title="شما اجازه تخصیص این سفارش را ندارید">
-                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                    </svg>
-                    تخصیص کاربر
-                </button>
-            @endif
+            {{-- ═══════════ نقش: ادمین (مدیرعامل) ═══════════ --}}
+            @if(auth()->user()->role === 'admin')
 
-            {{-- ✅ دکمه تغییر وضعیت --}}
-            @if($can['changeStatus'])
-                <button wire:click="openStatusModal" class="btn">
-                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                    تغییر وضعیت
-                </button>
-            @else
-                <button class="btn" disabled title="شما اجازه تغییر وضعیت این سفارش را ندارید">
-                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                    تغییر وضعیت
-                </button>
-            @endif
+                @if($wo->is_pending_admin)
+                    <button wire:click="approveAsAdmin" class="btn btn--primary"
+                            wire:confirm="تایید نهایی این سفارش؟">
+                        <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M20 6 9 17l-5-5"/>
+                        </svg>
+                        تایید نهایی (مدیرعامل)
+                    </button>
 
-            @if($can['approve'] && $wo->is_pending_approval)
-                <button wire:click="approve" class="btn btn--primary"
-                        wire:confirm="از تایید مطمئن هستید؟">
-                    <svg class="icon icon--sm" ...><path d="M20 6 9 17l-5-5"/></svg>
-                    تایید سفارش
-                </button>
-                <button wire:click="$set('showRejectModal', true)" class="btn"
-                        style="color:#dc2626">
-                    رد
-                </button>
+                    <button wire:click="$set('showRejectModal', true)"
+                            class="btn" style="color:#dc2626">
+                        رد
+                    </button>
+                @endif
+
+            @else
+
+                @if($wo->is_pending_manager && $can['approveAsManager'])
+                    <a href="{{ route('work-orders.approvals') }}" wire:navigate
+                       class="btn btn--primary">
+                        <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M20 6 9 17l-5-5"/>
+                        </svg>
+                        بررسی و تایید
+                    </a>
+
+                    <button wire:click="$set('showRejectModal', true)"
+                            class="btn" style="color:#dc2626">
+                        رد
+                    </button>
+                @endif
+
+                @if($wo->is_approved && $can['assign'])
+                    <button wire:click="openAssignModal" class="btn btn--primary">
+                        <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                        </svg>
+                        {{ $wo->assignee_id ? 'تغییر مسئول' : 'تخصیص کاربر' }}
+                    </button>
+                @endif
+
+                @if($wo->is_approved && $can['changeStatus'])
+                    <button wire:click="openStatusModal" class="btn">
+                        <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                        تغییر وضعیت
+                    </button>
+                @endif
+
             @endif
         </div>
     </div>
 
-    {{-- ==================== Grid Layout ==================== --}}
     <div class="wo-detail-grid">
 
-        {{-- ============ ستون اصلی ============ --}}
         <div class="wo-detail-main">
 
             {{-- توضیحات --}}
@@ -490,6 +499,46 @@
 
         </div>
     </div>
+
+    @if($showRejectModal)
+        <div class="modal-backdrop" wire:click.self="closeRejectModal">
+            <div class="modal">
+                <div class="modal-head">
+                    <div>
+                        <h2>رد سفارش کار</h2>
+                        <p style="font-size:12px;color:var(--color-text-2);margin-top:4px">
+                            دلیل رد را وارد کنید تا به سازنده اطلاع داده شود.
+                        </p>
+                    </div>
+                    <button type="button" class="icon-btn" wire:click="closeRejectModal">✕</button>
+                </div>
+
+                <form wire:submit="reject">
+                    <div class="modal-body">
+                        <div class="field @error('rejectionReason') has-error @enderror">
+                            <label>دلیل رد <span class="req">*</span></label>
+                            <div class="global-search" style="width:100%">
+                            <textarea wire:model="rejectionReason" rows="4"
+                                      placeholder="مثلاً: اطلاعات ناقص است..."></textarea>
+                            </div>
+                            @error('rejectionReason')
+                            <span class="field-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="modal-foot">
+                        <span class="spacer"></span>
+                        <button type="button" class="btn" wire:click="closeRejectModal">انصراف</button>
+                        <button type="submit" class="btn btn--primary"
+                                style="background:#dc2626;border-color:#dc2626">
+                            رد کردن
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 
     {{-- ==================== Modal: تخصیص ==================== --}}
     @if($showAssignModal)
